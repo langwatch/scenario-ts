@@ -30,7 +30,7 @@ describe("Vegetarian Recipe Agent", () => {
     ];
 
     // Create and run the scenario using the builder pattern
-    const result = await Scenario.describe("User is looking for a dinner idea")
+    const result = await new Scenario("User is looking for a dinner idea")
       .setConfig({ maxTurns: 5, debug: true })
       .addSuccessCriteria(successCriteria)
       .addFailureCriteria(failureCriteria)

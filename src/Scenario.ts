@@ -18,51 +18,44 @@ import {
  * - Configuration options for controlling execution
  */
 export class Scenario {
-  private description: string;
   private successCriteria: Criterion[] = [];
   private failureCriteria: Criterion[] = [];
-  private readonly config: ScenarioConfig;
+  private config: ScenarioConfig = DEFAULT_CONFIG;
 
   /**
    * Creates a new Scenario instance.
    *
-   * @param description - The initial prompt for the agent
-   * @param config - Optional configuration overrides
-   */
-  private constructor(description: string, config: ScenarioConfig = {}) {
-    this.description = description;
-    this.config = { ...DEFAULT_CONFIG, ...config };
-  }
-
-  /**
-   * Creates a new Scenario with the given description.
+   * @param description - The initial prompt or description for the scenario.
+   *                     This sets up the context for the agent to work with.
    *
-   * @param description - The initial prompt for the agent
-   * @returns A new Scenario instance
+   * @throws {Error} If description is empty or only whitespace
    *
    * @example
    * ```typescript
-   * const scenario = Scenario.describe("Solve this math problem: 2 + 2 = ?");
+   * const scenario = new Scenario("Generate a vegetarian recipe")
+   *   .setConfig({ maxTurns: 5 })
+   *   .addSuccessCriteria(["Must include ingredients"]);
    * ```
    */
-  static describe(description: string): Scenario {
-    return new Scenario(description);
+  constructor(private readonly description: string) {
+    if (!description?.trim()) {
+      throw new Error("Scenario description is required and cannot be empty");
+    }
   }
 
   /**
-   * Sets the configuration for the scenario.
+   * Updates the scenario's configuration.
    *
-   * @param config - Partial configuration to override defaults
-   * @returns This scenario instance for method chaining
+   * @param config - Partial configuration to merge with existing config
+   * @returns The scenario instance for chaining
    *
    * @example
    * ```typescript
-   * scenario.setConfig({ maxTurns: 5, verbose: true });
+   * scenario.setConfig({ maxTurns: 5, debug: true });
    * ```
    */
-  setConfig(config: Partial<ScenarioConfig>): Scenario {
-    // Using Object.assign to modify the existing config object
-    Object.assign(this.config, config);
+  setConfig(config: Partial<ScenarioConfig>): this {
+    this.config = { ...this.config, ...config };
     return this;
   }
 
