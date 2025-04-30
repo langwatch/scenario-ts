@@ -13,7 +13,7 @@
   "scripts": {
     "build": "pnpm run clean && tsc --build",
     "clean": "rimraf dist",
-    "test": "jest",
+    "test": "DEBUG=scenario-ts:* jest",
     "prepare": "pnpm run build",
     "lint": "eslint .",
     "format": "prettier --write .",

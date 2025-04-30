@@ -1,3 +1,5 @@
-import debug from 'debug';
+import debug from "debug";
 
-export const log = debug('scenario-ts:core'); 
+process.env.DEBUG = "scenario-ts:*";
+
+export const log = debug("scenario-ts:core");

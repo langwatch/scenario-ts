@@ -143,6 +143,7 @@ export class Scenario {
 
       // Log if debug or verbose mode is enabled
       if (this.config.debug || this.config.verbose) {
+        // console.log("Turn", currentTurn + 1);
         log(`Turn ${currentTurn + 1}:`, response);
       }
 
