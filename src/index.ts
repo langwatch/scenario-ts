@@ -1,3 +1,5 @@
-export { Scenario } from './Scenario';
-export { TestingAgent } from './TestingAgent';
-export { CacheManager } from './cache/CacheManager'; 
+export * from "./types";
+export * from "./Scenario";
+export * from "./ScenarioTestingAgent";
+export * from "./ConversationRunner";
+export { CacheManager } from "./cache/CacheManager";

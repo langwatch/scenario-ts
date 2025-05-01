@@ -1,32 +1,57 @@
+export interface RunOptions {
+  agent: TestableAgent;
+  customTestingAgent?: TestingAgent;
+  maxTurns?: number;
+}
+
 export interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
-export interface AgentResponse {
-  messages: Message[];
+export interface CriterionStatus {
+  criterion: string;
+  met: boolean;
+  reason: string;
 }
 
-export type AgentFunction = (message: string, history: Message[]) => Promise<AgentResponse>;
+export interface TestingAgentResponse {
+  message: string | null; // null means end conversation
+  criteria: CriterionStatus[];
+}
 
-export type Criterion = string | ((history: Message[]) => boolean);
+export interface TestableAgent {
+  invoke(message: string, history: Message[]): Promise<string>;
+}
 
-export interface ScenarioResult {
-  success: boolean;
-  history: Message[];
-  turns: number;
-  failureReason?: string;
+export interface TestingAgent {
+  invoke(message: string, history: Message[]): Promise<TestingAgentResponse>;
 }
 
 export interface ScenarioConfig {
-  maxTurns?: number;
-  debug?: boolean;
-  verbose?: boolean;
-  cacheKey?: string;
+  successCriteria: string[];
+  failureCriteria: string[];
 }
 
-export const DEFAULT_CONFIG: ScenarioConfig = {
-  maxTurns: 10,
-  debug: false,
-  verbose: false,
-}; 
+export enum ScenarioResultReason {
+  FailureCriteriaMet = "failure criteria met",
+  MaxTurnsExceeded = "max turns exceeded",
+  AllSuccessCriteriaMet = "all success criteria met",
+}
+
+export interface ScenarioCompletedResult {
+  success: boolean;
+  history: Message[];
+  reason:
+    | ScenarioResultReason.AllSuccessCriteriaMet
+    | ScenarioResultReason.FailureCriteriaMet;
+  criteria: CriterionStatus[];
+}
+
+export interface ScenarioMaxTurnsResult {
+  success: boolean;
+  history: Message[];
+  reason: ScenarioResultReason.MaxTurnsExceeded;
+}
+
+export type ScenarioResult = ScenarioCompletedResult | ScenarioMaxTurnsResult;
