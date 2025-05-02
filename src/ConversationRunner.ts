@@ -50,10 +50,26 @@ export class ConversationRunner {
       }
     }
 
+    this.messages.push({
+      role: "assistant",
+      content: `System:
+
+<finish_test>
+This is the last message, conversation has reached the maximum number of turns, give your final verdict,
+if you don't have enough information to make a verdict, say inconclusive with max turns reached.
+</finish_test>`,
+    });
+
+    const response = await testingAgent.invoke(this.messages);
+
+    if (response.type === TestingAgentResponseType.FinishTest) {
+      return response;
+    }
+
     return {
       success: false,
       conversation: this.messages,
-      reasoning: `Reached max turns (${maxTurns}) with conclusion`,
+      reasoning: `Reached max turns (${maxTurns}) without a conclusion`,
       totalTime: Date.now() - startTime,
     };
   }

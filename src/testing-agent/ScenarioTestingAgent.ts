@@ -28,14 +28,16 @@ export class ScenarioTestingAgent {
   }
 
   async invoke(messages: CoreMessage[]): Promise<TestingAgentResponse> {
+    const conversation: CoreMessage[] = [
+      {
+        role: "system",
+        content: this.systemPrompt,
+      },
+      ...this.flipMessageRoles(messages),
+    ];
+
     const completion = await generateText({
-      messages: [
-        {
-          role: "system",
-          content: this.systemPrompt,
-        },
-        ...this.flipMessageRoles(messages),
-      ],
+      messages: conversation,
       model: this.chatModel,
       temperature: 0,
       maxTokens: 1000,
