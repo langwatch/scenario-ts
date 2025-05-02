@@ -5,6 +5,10 @@ import {
   TestingAgent,
   TestingAgentResponseType,
 } from "./types";
+import {
+  printTestableAgentMessage,
+  printTestingAgentMessage,
+} from "./utils/logger";
 
 export class ConversationRunner {
   private messages: CoreMessage[] = [];
@@ -26,12 +30,14 @@ export class ConversationRunner {
       const response = await testingAgent.invoke(this.messages);
 
       if (response.type === TestingAgentResponseType.FinishTest) {
+        console.log("FINISH TEST");
+        console.log(response);
         return response;
       }
 
       if (response.type === TestingAgentResponseType.Message) {
         if (this.config.verbose) {
-          process.stdout.write(`Testing agent: ${response.message}\n`);
+          printTestingAgentMessage(response.message);
         }
         // Record testing agent's message as "user" since it's simulating a user
         this.messages.push({ role: "user", content: response.message });
@@ -39,7 +45,7 @@ export class ConversationRunner {
         this.messages.push({ role: "assistant", content: message });
 
         if (this.config.verbose) {
-          process.stdout.write(`Agent: ${message}\n`);
+          printTestableAgentMessage(message);
         }
       }
     }

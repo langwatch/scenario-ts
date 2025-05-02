@@ -66,11 +66,6 @@ describe("Vegetarian Recipe Example", () => {
     });
 
     // Check the results
-    try {
-      expect(result.success).toBe(true);
-    } catch (error) {
-      console.log(result);
-      throw error;
-    }
+    expect(result.success).toBe(true);
   });
 });

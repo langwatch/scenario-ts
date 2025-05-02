@@ -31,6 +31,12 @@ export class Scenario {
       verbose,
     });
 
-    return await runner.run();
+    const result = await runner.run();
+
+    if (verbose) {
+      console.log(JSON.stringify(result, null, 2));
+    }
+
+    return result;
   }
 }

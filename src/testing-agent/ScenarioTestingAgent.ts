@@ -1,4 +1,3 @@
-import { OpenAIChatLanguageModel } from "@ai-sdk/openai/internal";
 import { modelRegistry } from "../modelRegistry";
 import { TestingAgentResponse, TestingAgentResponseType } from "../types";
 import { CoreMessage, generateText, LanguageModel } from "ai";
@@ -41,21 +40,24 @@ export class ScenarioTestingAgent {
       temperature: 0,
       maxTokens: 1000,
       tools: {
-        finishTest: ToolDefinitionProvider.getFinishTestTool(),
+        finishTest: ToolDefinitionProvider.getFinishTestTool().tool,
       },
     });
 
     // Handle tool calls if present
     if (completion.toolCalls?.length) {
       const toolCall = completion.toolCalls[0];
+      const { schema } = ToolDefinitionProvider.getFinishTestTool();
+      const args = schema.parse(toolCall.args);
       if (toolCall.toolName === "finishTest") {
+        console.log("FINISH TEST");
         return {
           type: TestingAgentResponseType.FinishTest,
-          success: toolCall.args.success,
-          reasoning: toolCall.args.reasoning,
-          metCriteria: toolCall.args.metCriteria,
-          unmetCriteria: toolCall.args.unmetCriteria,
-          triggeredFailures: toolCall.args.triggeredFailures,
+          success: args.verdict === "success",
+          reasoning: args.reasoning,
+          metCriteria: args.details.metCriteria,
+          unmetCriteria: args.details.unmetCriteria,
+          triggeredFailures: args.details.triggeredFailures,
         };
       }
     }
