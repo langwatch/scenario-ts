@@ -1,42 +1,54 @@
+import { CoreMessage } from "ai";
 import {
-  Message,
+  ScenarioResult,
   TestableAgent,
   TestingAgent,
-  TestingAgentResponse,
+  TestingAgentResponseType,
 } from "./types";
 
 export class ConversationRunner {
-  private history: Message[] = [];
+  private messages: CoreMessage[] = [];
 
   constructor(
-    private agent: TestableAgent,
-    private testingAgent: TestingAgent
+    private config: {
+      agent: TestableAgent;
+      testingAgent: TestingAgent;
+      maxTurns: number;
+      verbose?: boolean;
+    }
   ) {}
 
-  async next(): Promise<TestingAgentResponse> {
-    const response = await this.testingAgent.invoke(
-      this.history[this.history.length - 1]?.content || "",
-      this.history
-    );
+  async run(): Promise<ScenarioResult> {
+    const { agent, testingAgent, maxTurns } = this.config;
+    const startTime = Date.now();
 
-    if (!response.message) {
-      return response;
+    while (this.messages.length < maxTurns) {
+      const response = await testingAgent.invoke(this.messages);
+
+      if (response.type === TestingAgentResponseType.FinishTest) {
+        return response;
+      }
+
+      if (response.type === TestingAgentResponseType.Message) {
+        if (this.config.verbose) {
+          process.stdout.write(`Testing agent: ${response.message}\n`);
+        }
+        // Record testing agent's message as "user" since it's simulating a user
+        this.messages.push({ role: "user", content: response.message });
+        const { message } = await agent.invoke(response.message);
+        this.messages.push({ role: "assistant", content: message });
+
+        if (this.config.verbose) {
+          process.stdout.write(`Agent: ${message}\n`);
+        }
+      }
     }
 
-    const agentResponse = await this.agent.invoke(
-      response.message,
-      this.history
-    );
-
-    this.history.push(
-      { role: "user", content: response.message },
-      { role: "assistant", content: agentResponse }
-    );
-
-    return response;
-  }
-
-  getHistory(): Message[] {
-    return [...this.history];
+    return {
+      success: false,
+      conversation: this.messages,
+      reasoning: `Reached max turns (${maxTurns}) with conclusion`,
+      totalTime: Date.now() - startTime,
+    };
   }
 }

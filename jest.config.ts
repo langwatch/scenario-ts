@@ -4,6 +4,9 @@
  */
 
 import type { Config } from "jest";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const config: Config = {
   // All imported modules in your tests should be mocked automatically

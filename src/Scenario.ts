@@ -2,10 +2,9 @@ import {
   type ScenarioConfig,
   type ScenarioResult,
   type RunOptions,
-  ScenarioResultReason,
 } from "./types";
 import { ConversationRunner } from "./ConversationRunner";
-import { ScenarioTestingAgent } from "./ScenarioTestingAgent";
+import { ScenarioTestingAgent } from "./testing-agent/ScenarioTestingAgent";
 
 export class Scenario {
   private _scenarioTestingAgent!: ScenarioTestingAgent;
@@ -20,47 +19,18 @@ export class Scenario {
 
   public async run({
     agent,
-    customTestingAgent,
-    maxTurns = 10,
+    maxTurns = 2,
+    verbose = false,
   }: RunOptions): Promise<ScenarioResult> {
-    const testingAgent = customTestingAgent ?? this.scenarioTestingAgent;
+    const testingAgent = this.scenarioTestingAgent;
 
-    const runner = new ConversationRunner(agent, testingAgent);
+    const runner = new ConversationRunner({
+      agent,
+      testingAgent,
+      maxTurns,
+      verbose,
+    });
 
-    for (let turn = 0; turn < maxTurns; turn++) {
-      const { criteria } = await runner.next();
-
-      // Check failure criteria
-      const failureMet = criteria.some((c) => c.met);
-
-      if (failureMet) {
-        return {
-          success: false,
-          history: runner.getHistory(),
-          criteria,
-          reason: ScenarioResultReason.FailureCriteriaMet,
-        };
-      }
-
-      // Check success criteria
-      const allSuccessMet = this.config.successCriteria.every(
-        (criterion) => criteria.find((c) => c.criterion === criterion)?.met
-      );
-
-      if (allSuccessMet) {
-        return {
-          success: true,
-          history: runner.getHistory(),
-          criteria,
-          reason: ScenarioResultReason.AllSuccessCriteriaMet,
-        };
-      }
-    }
-
-    return {
-      success: false,
-      history: runner.getHistory(),
-      reason: ScenarioResultReason.MaxTurnsExceeded,
-    };
+    return await runner.run();
   }
 }

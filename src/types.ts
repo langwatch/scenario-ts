@@ -1,13 +1,4 @@
-export interface RunOptions {
-  agent: TestableAgent;
-  customTestingAgent?: TestingAgent;
-  maxTurns?: number;
-}
-
-export interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import { CoreMessage } from "ai";
 
 export interface CriterionStatus {
   criterion: string;
@@ -15,43 +6,55 @@ export interface CriterionStatus {
   reason: string;
 }
 
-export interface TestingAgentResponse {
-  message: string | null; // null means end conversation
-  criteria: CriterionStatus[];
+export enum TestingAgentResponseType {
+  Message = "message",
+  FinishTest = "finish_test",
 }
 
-export interface TestableAgent {
-  invoke(message: string, history: Message[]): Promise<string>;
-}
+type TestingAgentResponseMessage = {
+  type: TestingAgentResponseType.Message;
+  message: string;
+};
 
-export interface TestingAgent {
-  invoke(message: string, history: Message[]): Promise<TestingAgentResponse>;
-}
+type TestingAgentResponseFinishTest = {
+  type: TestingAgentResponseType.FinishTest;
+  success: boolean;
+  reasoning: string | null;
+  metCriteria: string[];
+  unmetCriteria: string[];
+  triggeredFailures: string[];
+};
+
+export type TestingAgentResponse =
+  | TestingAgentResponseMessage
+  | TestingAgentResponseFinishTest;
+
+export type MaxTurnsExceeded = {
+  success: false;
+  conversation: CoreMessage[];
+  reasoning: string;
+  totalTime: number;
+};
+
+export type ScenarioResult = MaxTurnsExceeded | TestingAgentResponseFinishTest;
 
 export interface ScenarioConfig {
+  description: string;
+  strategy: string;
   successCriteria: string[];
   failureCriteria: string[];
 }
 
-export enum ScenarioResultReason {
-  FailureCriteriaMet = "failure criteria met",
-  MaxTurnsExceeded = "max turns exceeded",
-  AllSuccessCriteriaMet = "all success criteria met",
+export interface TestableAgent {
+  invoke(prompt: string): Promise<{ message: string }>;
 }
 
-export interface ScenarioCompletedResult {
-  success: boolean;
-  history: Message[];
-  reason:
-    | ScenarioResultReason.AllSuccessCriteriaMet
-    | ScenarioResultReason.FailureCriteriaMet;
-  criteria: CriterionStatus[];
+export interface TestingAgent {
+  invoke(conversation: CoreMessage[]): Promise<TestingAgentResponse>;
 }
 
-export interface ScenarioMaxTurnsResult {
-  success: boolean;
-  history: Message[];
-  reason: ScenarioResultReason.MaxTurnsExceeded;
+export interface RunOptions {
+  agent: TestableAgent;
+  maxTurns?: number;
+  verbose?: boolean;
 }
-
-export type ScenarioResult = ScenarioCompletedResult | ScenarioMaxTurnsResult;
