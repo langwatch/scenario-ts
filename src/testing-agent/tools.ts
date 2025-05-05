@@ -1,7 +1,22 @@
 import { tool } from "ai";
 import { z } from "zod";
 
+/**
+ * Provides tool definitions for the testing agent to use during scenario evaluation.
+ *
+ * This class contains static methods that return tool definitions with their
+ * associated schemas, making it easy to create consistent tools across the testing system.
+ */
 export class ToolDefinitionProvider {
+  /**
+   * Creates a tool that allows the testing agent to complete a test with a final verdict.
+   *
+   * This tool is used to signal the end of a test scenario and provide detailed
+   * information about why a particular verdict was reached, including which
+   * success criteria were met or unmet and which failure criteria were triggered.
+   *
+   * @returns An object containing the Zod schema and the tool definition
+   */
   static getFinishTestTool() {
     const parameters = z
       .object({

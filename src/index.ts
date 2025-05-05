@@ -1,4 +1,3 @@
-export * from "./types";
+export * from "./shared/types";
 export * from "./Scenario";
-export * from "./ConversationRunner";
-export { CacheManager } from "./cache/CacheManager";
+export * from "./conversation/ConversationRunner";

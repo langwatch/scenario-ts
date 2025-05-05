@@ -1,5 +1,8 @@
 import { modelRegistry } from "../modelRegistry";
-import { TestingAgentResponse, TestingAgentResponseType } from "../types";
+import {
+  TestingAgentResponse,
+  TestingAgentResponseType,
+} from "../shared/types";
 import { CoreMessage, generateText, LanguageModel } from "ai";
 import { ToolDefinitionProvider } from "./tools";
 
@@ -51,8 +54,8 @@ export class ScenarioTestingAgent {
       const toolCall = completion.toolCalls[0];
       const { schema } = ToolDefinitionProvider.getFinishTestTool();
       const args = schema.parse(toolCall.args);
+
       if (toolCall.toolName === "finishTest") {
-        console.log("FINISH TEST");
         return {
           type: TestingAgentResponseType.FinishTest,
           success: args.verdict === "success",

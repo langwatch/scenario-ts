@@ -16,7 +16,7 @@ type TestingAgentResponseMessage = {
   message: string;
 };
 
-type TestingAgentResponseFinishTest = {
+export type TestingAgentResponseFinishTest = {
   type: TestingAgentResponseType.FinishTest;
   success: boolean;
   reasoning: string | null;
@@ -57,4 +57,5 @@ export interface RunOptions {
   agent: TestableAgent;
   maxTurns?: number;
   verbose?: boolean;
+  debug?: boolean;
 }
