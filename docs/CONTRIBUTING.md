@@ -10,7 +10,7 @@ Please be respectful and considerate of others when contributing to this project
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - pnpm (v8 or higher)
 
 ### Setup

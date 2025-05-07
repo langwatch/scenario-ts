@@ -4,10 +4,12 @@ This document outlines the testing approach, conventions, and best practices for
 
 ## Test Structure
 
-Tests are organized by component:
+Tests are organized by module:
 
-- `src/__tests__`: Tests for core components like `Scenario`
-- `src/testing-agent/__tests__`: Tests for the `ScenarioTestingAgent` and related components
+- `src/__tests__/scenario`: Tests for core components like `Scenario`
+- `src/__tests__/testing-agent`: Tests for the `ScenarioTestingAgent` and related components
+- `src/__tests__/conversation`: Tests for the conversation runner and related utilities
+- `src/__tests__/shared`: Tests for shared utilities and helper functions
 
 Each test file is collocated with the code it tests in a `__tests__` directory.
 
