@@ -1,18 +1,18 @@
 # Scenario TS
 
-A TypeScript port of the Scenario library for testing agents.
+A TypeScript library for testing AI agents using scenarios.
 
 ## Installation
 
 ```bash
-# Using pnpm
-pnpm add scenario-ts
+# Using pnpm (recommended)
+pnpm add @langwatch/scenario-ts
 
 # Using npm
-npm install scenario-ts
+npm install @langwatch/scenario-ts
 
 # Using yarn
-yarn add scenario-ts
+yarn add @langwatch/scenario-ts
 ```
 
 ## Development
@@ -39,16 +39,43 @@ pnpm run format
 ## Usage
 
 ```typescript
-import { Scenario } from "scenario-ts";
+import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 
-const result = await Scenario.describe("User is looking for a dinner idea")
-  .setConfig({ maxTurns: 5, debug: true })
-  .addSuccessCriteria([
+// Define your agent implementation
+class MyAgent implements TestableAgent {
+  async invoke(message: string): Promise<{ message: string }> {
+    // Your agent implementation here
+    return { message: "Response from the agent" };
+  }
+}
+
+// Create a scenario to test your agent
+const scenario = new Scenario({
+  description: "User is looking for a dinner idea",
+  strategy: "Ask for a vegetarian recipe and evaluate the response",
+  successCriteria: [
     "Recipe agent generates a vegetarian recipe",
     "Recipe includes a list of ingredients",
-  ])
-  .addFailureCriteria(["The recipe is not vegetarian or includes meat"])
-  .run(agent);
+  ],
+  failureCriteria: ["The recipe is not vegetarian or includes meat"],
+});
+
+// Create your agent
+const agent = new MyAgent();
+
+// Run the test with configuration options
+const result = await scenario.run({
+  agent,
+  maxTurns: 5, // Maximum conversation turns (default: 2)
+  verbose: true, // Enable detailed logging (default: false)
+});
+
+// Check the result
+if (result.verdict === Verdict.Success) {
+  console.log("Test passed!");
+} else {
+  console.log("Test failed:", result.reasoning);
+}
 ```
 
 ## License
