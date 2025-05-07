@@ -15,6 +15,8 @@ A TypeScript library for testing AI agents using scenarios.
   - [Getting Started](#getting-started)
   - [Working with Examples](#working-with-examples)
   - [Project Rules](#project-rules)
+- [Configuration](#configuration)
+  - [Environment Variables](#environment-variables)
 - [License](#license)
 
 ## Installation
@@ -61,7 +63,6 @@ const agent = new MyAgent();
 const result = await scenario.run({
   agent,
   maxTurns: 5, // Maximum conversation turns (default: 2)
-  verbose: true, // Enable detailed logging (default: false)
 });
 
 // Check the result
@@ -129,6 +130,19 @@ This project follows these key development rules:
 - Build both CommonJS and ESM modules
 - Examples must use @langwatch/scenario-ts import
 - Keep dist/ in .gitignore
+
+## Configuration
+
+### Environment Variables
+
+- `VERBOSE=true`: Enables detailed output of the conversation flow and generates a pretty report. This is useful for debugging and understanding how your agent interacts with the testing scenario.
+
+Example:
+
+```bash
+# Run with verbose output
+VERBOSE=true pnpm run examples:vitest:run test
+```
 
 ## License
 

@@ -34,7 +34,6 @@ describe("Vegetarian Recipe Example", () => {
     const result = await scenario.run({
       agent,
       maxTurns: 5,
-      verbose: process.env.VERBOSE === "true",
     });
 
     // Check the results

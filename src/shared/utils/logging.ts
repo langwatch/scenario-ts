@@ -2,7 +2,6 @@ import chalk from "chalk";
 
 // Need to import these types for the type guards
 import {
-  MaxTurnsExceeded,
   TestingAgentResponseFinishTest,
   ScenarioResult,
   TestingAgentResponseType,
@@ -18,9 +17,7 @@ export function formatScenarioResult(result: ScenarioResult) {
   printVerdict(result.verdict);
   printReasoning(result.reasoning);
 
-  if (isMaxTurnsExceeded(result)) {
-    printMaxTurnsWarning();
-  } else if (isFinishTestResponse(result)) {
+  if (isFinishTestResponse(result)) {
     printCriteria(result);
   }
 
@@ -52,13 +49,6 @@ function printReasoning(reasoning: string | null) {
   if (reasoning) {
     process.stdout.write(chalk.bold("Reasoning: ") + reasoning + "\n\n");
   }
-}
-
-/**
- * Prints a warning when maximum turns are exceeded
- */
-function printMaxTurnsWarning() {
-  process.stdout.write(chalk.yellow.bold("⚠ Maximum turns exceeded\n\n"));
 }
 
 /**
@@ -118,16 +108,6 @@ function printTriggeredFailures(failures: string[]) {
  */
 function printFooter() {
   process.stdout.write(chalk.bold("\n==================================\n\n"));
-}
-
-/**
- * Type guard to check if the result is a MaxTurnsExceeded result
- * @param result The scenario result to check
- */
-function isMaxTurnsExceeded(
-  result: ScenarioResult
-): result is MaxTurnsExceeded {
-  return "type" in result && result.type === "MAX_TURNS_EXCEEDED";
 }
 
 /**

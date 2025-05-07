@@ -1,15 +1,14 @@
 import { CoreMessage } from "ai";
 
 import { ConversationLogger } from "./ConversationLogger";
+import { MaxTurnsExceededError } from "./errors";
 import {
   ScenarioResult,
   TestableAgent,
   TestingAgent,
   TestingAgentResponseFinishTest,
   TestingAgentResponseType,
-  Verdict,
 } from "../shared/types";
-
 /**
  * ConversationRunner - Manages the conversation flow between a testable agent and a testing agent
  *
@@ -23,7 +22,7 @@ import {
  */
 export class ConversationRunner {
   /** Stores the conversation history between agents */
-  private messages: CoreMessage[] = [];
+  readonly messages: CoreMessage[] = [];
   /** Logger */
   private _logger?: ConversationLogger;
 
@@ -42,7 +41,6 @@ export class ConversationRunner {
       agent: TestableAgent;
       testingAgent: TestingAgent;
       maxTurns: number;
-      verbose?: boolean;
       logger?: ConversationLogger;
     }
   ) {}
@@ -54,7 +52,6 @@ export class ConversationRunner {
    */
   async run(): Promise<ScenarioResult> {
     const { maxTurns } = this.config;
-    const startTime = Date.now();
 
     while (this.messages.length < maxTurns) {
       const response = await this.getTestingAgentResponse();
@@ -87,13 +84,7 @@ if you don't have enough information to make a verdict, say inconclusive with ma
       return response as TestingAgentResponseFinishTest;
     }
 
-    return {
-      type: "MAX_TURNS_EXCEEDED",
-      verdict: Verdict.Failure,
-      conversation: this.messages,
-      reasoning: `Reached max turns (${maxTurns}) without a conclusion`,
-      totalTime: Date.now() - startTime,
-    };
+    throw new MaxTurnsExceededError("Max turns exceeded");
   }
 
   /**
@@ -103,9 +94,9 @@ if you don't have enough information to make a verdict, say inconclusive with ma
    * @private
    */
   private async getTestingAgentResponse() {
-    const { testingAgent, verbose } = this.config;
+    const { testingAgent } = this.config;
 
-    if (verbose) {
+    if (process.env.VERBOSE === "true") {
       this.logger.startUserSpinner();
       const response = await testingAgent.invoke(this.messages);
       this.logger.stopUserSpinner();
@@ -126,9 +117,9 @@ if you don't have enough information to make a verdict, say inconclusive with ma
    * @private
    */
   private async getAgentResponse(input: string) {
-    const { agent, verbose } = this.config;
+    const { agent } = this.config;
 
-    if (verbose) {
+    if (process.env.VERBOSE === "true") {
       this.logger.startAgentSpinner();
       const { message } = await agent.invoke(input);
       this.logger.stopAgentSpinner();

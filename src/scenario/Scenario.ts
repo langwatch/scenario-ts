@@ -1,4 +1,5 @@
 import { ConversationRunner } from "../conversation";
+import { MaxTurnsExceededError } from "../conversation/errors";
 import {
   type ScenarioConfig,
   type ScenarioResult,
@@ -52,7 +53,6 @@ export class Scenario {
   public async run({
     agent,
     maxTurns = 2,
-    verbose = false,
   }: RunOptions): Promise<ScenarioResult> {
     const testingAgent = this.scenarioTestingAgent;
 
@@ -60,15 +60,28 @@ export class Scenario {
       agent,
       testingAgent,
       maxTurns,
-      verbose,
     });
 
-    const result = await runner.run();
+    try {
+      const result = await runner.run();
 
-    if (verbose) {
-      formatScenarioResult(result);
+      if (process.env.VERBOSE === "true") {
+        formatScenarioResult(result);
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof MaxTurnsExceededError) {
+        if (process.env.VERBOSE === "true") {
+          console.log(
+            "Max turns exceeded. Conversation history:",
+            runner.messages
+          );
+        }
+        throw error;
+      }
+
+      throw error;
     }
-
-    return result;
   }
 }
