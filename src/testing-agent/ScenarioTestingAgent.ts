@@ -2,12 +2,13 @@ import { modelRegistry } from "../modelRegistry";
 import {
   TestingAgentResponse,
   TestingAgentResponseType,
+  Verdict,
 } from "../shared/types";
 import { CoreMessage, generateText, LanguageModel } from "ai";
 import { ToolDefinitionProvider } from "./tools";
 
 const DEFAULT_MODEL: Parameters<typeof modelRegistry.languageModel>[0] =
-  "openai:gpt-4o-mini";
+  "openai:gpt-4.1-nano";
 
 interface ScenarioTestingAgentConfig {
   description: string;
@@ -58,7 +59,7 @@ export class ScenarioTestingAgent {
       if (toolCall.toolName === "finishTest") {
         return {
           type: TestingAgentResponseType.FinishTest,
-          success: args.verdict === "success",
+          verdict: args.verdict as Verdict,
           reasoning: args.reasoning,
           metCriteria: args.details.metCriteria,
           unmetCriteria: args.details.unmetCriteria,

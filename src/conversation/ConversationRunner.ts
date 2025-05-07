@@ -5,6 +5,7 @@ import {
   TestingAgent,
   TestingAgentResponseFinishTest,
   TestingAgentResponseType,
+  Verdict,
 } from "../shared/types";
 import { ConversationLogger } from "./ConversationLogger";
 
@@ -86,7 +87,8 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     }
 
     return {
-      success: false,
+      type: "MAX_TURNS_EXCEEDED",
+      verdict: Verdict.Failure,
       conversation: this.messages,
       reasoning: `Reached max turns (${maxTurns}) without a conclusion`,
       totalTime: Date.now() - startTime,

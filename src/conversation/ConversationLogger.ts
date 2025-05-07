@@ -1,6 +1,8 @@
 import ora, { Ora } from "ora";
 import chalk from "chalk";
 
+const agentChalk = chalk.green.bold;
+const userChalk = chalk.blue.bold;
 /**
  * ConversationLogger - Handles all logging and spinner UI for conversation flow.
  * Keeps UI/side-effects out of ConversationRunner.
@@ -12,7 +14,7 @@ export class ConversationLogger {
   /** Start spinner for the user (testing agent) */
   startUserSpinner() {
     this.userSpinner = ora({
-      prefixText: chalk.blue.bold("User: "),
+      prefixText: userChalk("User: "),
     }).start();
   }
 
@@ -24,13 +26,13 @@ export class ConversationLogger {
   /** Print a message from the user (testing agent) */
   printUserMessage(message: string) {
     // You can customize this as needed
-    console.log(chalk.blue.bold("User: ") + message);
+    this.printMessage(userChalk("User: ") + message);
   }
 
   /** Start spinner for the agent (testable agent) */
   startAgentSpinner() {
     this.agentSpinner = ora({
-      prefixText: chalk.green.bold("Agent: "),
+      prefixText: agentChalk("Agent: "),
     }).start();
   }
 
@@ -42,6 +44,10 @@ export class ConversationLogger {
   /** Print a message from the agent (testable agent) */
   printAgentMessage(message: string) {
     // You can customize this as needed
-    console.log(chalk.green.bold("Agent: ") + message);
+    this.printMessage(agentChalk("Agent: ") + message);
+  }
+
+  private printMessage(message: string | typeof agentChalk | typeof userChalk) {
+    process.stdout.write(message + "\n");
   }
 }

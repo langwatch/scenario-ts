@@ -5,6 +5,7 @@ import {
 } from "./shared/types";
 import { ConversationRunner } from "./conversation";
 import { ScenarioTestingAgent } from "./testing-agent";
+import { formatScenarioResult } from "./shared/utils/logging";
 
 /**
  * Represents a test scenario for evaluating AI agent behavior.
@@ -65,7 +66,7 @@ export class Scenario {
     const result = await runner.run();
 
     if (verbose) {
-      console.log(result);
+      formatScenarioResult(result);
     }
 
     return result;

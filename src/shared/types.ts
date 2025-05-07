@@ -16,9 +16,15 @@ type TestingAgentResponseMessage = {
   message: string;
 };
 
+export enum Verdict {
+  Success = "success",
+  Failure = "failure",
+  Inconclusive = "inconclusive",
+}
+
 export type TestingAgentResponseFinishTest = {
   type: TestingAgentResponseType.FinishTest;
-  success: boolean;
+  verdict: Verdict;
   reasoning: string | null;
   metCriteria: string[];
   unmetCriteria: string[];
@@ -30,7 +36,8 @@ export type TestingAgentResponse =
   | TestingAgentResponseFinishTest;
 
 export type MaxTurnsExceeded = {
-  success: false;
+  type: "MAX_TURNS_EXCEEDED";
+  verdict: Verdict.Failure;
   conversation: CoreMessage[];
   reasoning: string;
   totalTime: number;

@@ -1,4 +1,4 @@
-import { Scenario, TestableAgent } from "../../src";
+import { Scenario, TestableAgent, Verdict } from "../../src";
 import { CoreMessage, generateText } from "ai";
 import { modelRegistry } from "../../src/modelRegistry";
 
@@ -71,6 +71,6 @@ describe("Vegetarian Recipe Example", () => {
     });
 
     // Check the results
-    expect(result.success).toBe(true);
+    expect(result.verdict).toBe(Verdict.Failure);
   });
 });

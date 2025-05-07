@@ -1,4 +1,4 @@
-import { Scenario, TestableAgent } from "../../src";
+import { Scenario, TestableAgent, Verdict } from "../../dist/src";
 
 // A simple agent that just echoes back the message
 class EchoAgent implements TestableAgent {
@@ -24,11 +24,11 @@ describe("Simple Example", () => {
     const agent = new EchoAgent();
 
     // Run the test
-    const result = await scenario.run({ agent });
+    const result = await scenario.run({ agent, verbose: true });
 
     // Check the results
     try {
-      expect(result.success).toBe(true);
+      expect(result.verdict).toBe(Verdict.Success);
     } catch (error) {
       console.log(result);
       throw error;
