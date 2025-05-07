@@ -25,7 +25,10 @@ describe("Simple Example", () => {
     const agent = new EchoAgent();
 
     // Run the test
-    const result = await scenario.run({ agent, verbose: true });
+    const result = await scenario.run({
+      agent,
+      verbose: process.env.VERBOSE === "true",
+    });
 
     // Check the results
     try {
