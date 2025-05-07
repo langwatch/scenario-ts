@@ -15,15 +15,6 @@ vi.mock("../../modelRegistry", () => ({
   },
 }));
 
-// Create a mock type for the generateText result
-type MockGenerateTextResult = {
-  text?: string;
-  toolCalls?: Array<{
-    toolName: string;
-    args: any;
-  }>;
-};
-
 // Mock the generateText function with TypeScript types
 vi.mock("ai", () => {
   return {
@@ -44,7 +35,6 @@ vi.mock("../tools", () => ({
 // Import mocks after they've been defined
 import { generateText } from "ai";
 import { modelRegistry } from "../../modelRegistry";
-import { ToolDefinitionProvider } from "../tools";
 
 describe("ScenarioTestingAgent", () => {
   // Sample valid config for testing
