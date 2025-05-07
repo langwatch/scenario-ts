@@ -4,7 +4,6 @@ import {
   ScenarioConfig,
   Verdict,
   TestingAgentResponseType,
-  ModelConfig,
 } from "../../shared/types";
 import { CoreMessage } from "ai";
 
@@ -34,7 +33,7 @@ vi.mock("../tools", () => ({
 
 // Import mocks after they've been defined
 import { generateText } from "ai";
-import { modelRegistry } from "../../modelRegistry";
+import { ModelConfig, modelRegistry } from "../../modelRegistry";
 
 describe("ScenarioTestingAgent", () => {
   // Sample valid config for testing

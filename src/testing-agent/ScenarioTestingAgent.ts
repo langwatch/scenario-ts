@@ -1,9 +1,8 @@
-import { modelRegistry } from "../modelRegistry";
+import { modelRegistry, type ModelConfig } from "../modelRegistry";
 import {
   TestingAgentResponse,
   TestingAgentResponseType,
   Verdict,
-  ModelConfig,
   ScenarioConfig,
 } from "../shared/types";
 import { CoreMessage, generateText, LanguageModel } from "ai";

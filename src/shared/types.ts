@@ -1,5 +1,4 @@
 import { CoreMessage } from "ai";
-import type { modelRegistry } from "../modelRegistry";
 
 export interface CriterionStatus {
   criterion: string;
@@ -66,10 +65,4 @@ export interface RunOptions {
   maxTurns?: number;
   verbose?: boolean;
   debug?: boolean;
-}
-
-export interface ModelConfig {
-  modelId: Parameters<typeof modelRegistry.languageModel>[0];
-  temperature: number;
-  maxTokens: number;
 }

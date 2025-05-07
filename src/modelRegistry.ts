@@ -13,3 +13,9 @@ import { createProviderRegistry } from "ai";
 export const modelRegistry = createProviderRegistry({
   openai,
 });
+
+export interface ModelConfig {
+  modelId: Parameters<typeof modelRegistry.languageModel>[0];
+  temperature: number;
+  maxTokens: number;
+}
