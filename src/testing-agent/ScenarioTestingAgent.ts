@@ -1,12 +1,12 @@
+import { CoreMessage, generateText, LanguageModel } from "ai";
 import { modelRegistry, type ModelConfig } from "../modelRegistry";
+import { ToolDefinitionProvider } from "./tools";
 import {
   TestingAgentResponse,
   TestingAgentResponseType,
   Verdict,
   ScenarioConfig,
 } from "../shared/types";
-import { CoreMessage, generateText, LanguageModel } from "ai";
-import { ToolDefinitionProvider } from "./tools";
 
 // Default model configuration that can be overridden
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
@@ -51,20 +51,16 @@ export class ScenarioTestingAgent {
       ...this.flipMessageRoles(messages),
     ];
 
-    const completion = await generateText({
-      messages: conversation,
-      model: this.chatModel,
-      temperature: this.modelConfig.temperature,
-      maxTokens: this.modelConfig.maxTokens,
-      tools: {
-        finishTest: ToolDefinitionProvider.getFinishTestTool().tool,
-      },
-    });
-
+    const completion = await this.generateText(conversation);
     return this.processResponse(completion);
   }
 
-  private processResponse(completion: any): TestingAgentResponse {
+  /**
+   * Processes the completion of a text generation
+   * @param completion - The completion of a text generation
+   * @returns The testing agent response
+   */
+  private processResponse(completion: Awaited<ReturnType<typeof this.generateText>>): TestingAgentResponse {
     // Handle tool calls if present
     if (completion.toolCalls?.length) {
       const toolCall = completion.toolCalls[0];
@@ -88,6 +84,23 @@ export class ScenarioTestingAgent {
       type: TestingAgentResponseType.Message,
       message: completion.text,
     };
+  }
+
+  /**
+   * Generates text using the configured language model
+   * @param messages - The messages to generate text for
+   * @returns The generated text
+   */
+  private generateText(messages: CoreMessage[]) {
+    return generateText({
+      messages,
+      model: this.chatModel,
+      temperature: this.modelConfig.temperature,
+      maxTokens: this.modelConfig.maxTokens,
+      tools: {
+        finishTest: ToolDefinitionProvider.getFinishTestTool().tool,
+      },
+    });
   }
 
   private buildSystemPrompt() {

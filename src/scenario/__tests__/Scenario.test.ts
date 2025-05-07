@@ -1,13 +1,10 @@
+/* eslint-disable import/order */
+// NOTE: This file intentionally splits imports into two sections to ensure
+// vitest mocks are set up before the actual modules are imported.
+// This is a common pattern in Vitest/Jest testing to ensure that mocks
+// take effect before the actual module code is evaluated.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Scenario } from "../Scenario";
-import {
-  ScenarioConfig,
-  Verdict,
-  TestingAgentResponseType,
-  ScenarioResult,
-  TestableAgent,
-  RunOptions,
-} from "../../shared/types";
 
 // Prepare mock result
 const mockResult: ScenarioResult = {
@@ -49,9 +46,17 @@ vi.mock("../../shared/utils/logging", () => ({
 process.env.OPENAI_API_KEY = "test";
 
 // Import modules after mocking them
-import { ScenarioTestingAgent } from "../../testing-agent";
 import { ConversationRunner } from "../../conversation";
+import {
+  ScenarioConfig,
+  Verdict,
+  TestingAgentResponseType,
+  ScenarioResult,
+  TestableAgent,
+  RunOptions,
+} from "../../shared/types";
 import { formatScenarioResult } from "../../shared/utils/logging";
+import { ScenarioTestingAgent } from "../../testing-agent";
 
 describe("Scenario", () => {
   const validConfig: ScenarioConfig = {

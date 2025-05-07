@@ -1,5 +1,5 @@
-import ora, { Ora } from "ora";
 import chalk from "chalk";
+import ora, { Ora } from "ora";
 
 const agentChalk = chalk.green.bold;
 const userChalk = chalk.blue.bold;

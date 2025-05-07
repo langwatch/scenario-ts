@@ -1,4 +1,6 @@
 import { CoreMessage } from "ai";
+
+import { ConversationLogger } from "./ConversationLogger";
 import {
   ScenarioResult,
   TestableAgent,
@@ -7,7 +9,6 @@ import {
   TestingAgentResponseType,
   Verdict,
 } from "../shared/types";
-import { ConversationLogger } from "./ConversationLogger";
 
 /**
  * ConversationRunner - Manages the conversation flow between a testable agent and a testing agent

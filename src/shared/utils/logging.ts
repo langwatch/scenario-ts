@@ -1,5 +1,13 @@
 import chalk from "chalk";
-import { ScenarioResult, TestingAgentResponseType, Verdict } from "../types";
+
+// Need to import these types for the type guards
+import {
+  MaxTurnsExceeded,
+  TestingAgentResponseFinishTest,
+  ScenarioResult,
+  TestingAgentResponseType,
+  Verdict,
+} from "../types";
 
 /**
  * Formats and prints a scenario test result in a visually appealing way
@@ -134,5 +142,3 @@ function isFinishTestResponse(
   );
 }
 
-// Need to import these types for the type guards
-import { MaxTurnsExceeded, TestingAgentResponseFinishTest } from "../types";

@@ -103,6 +103,30 @@ it("should handle async operations", async () => {
 
 Integration tests that demonstrate the complete flow of the library can be found in the `examples/vitest` directory. These examples also serve as documentation for how to use the library.
 
+### Running Integration Tests
+
+To run integration tests, you need to:
+
+1. First build and package the library:
+
+   ```bash
+   pnpm run build      # Build the library
+   pnpm run buildpack  # Package it as a .tgz file
+   ```
+
+2. Then run the example tests:
+   ```bash
+   pnpm run run:examples:vitest
+   ```
+
+The `buildpack` step is essential because the examples use the locally packaged version of the library. This workflow ensures that:
+
+- You're testing against the exact package that would be published to npm
+- The integration tests use the library exactly as an end user would
+- Any issues with packaging or exports are caught early
+
+If you make changes to the library code, you'll need to rebuild and repackage before running the example tests again.
+
 ## Troubleshooting Common Issues
 
 1. **Mocking Issues**: If you receive "Cannot access X before initialization", make sure you're importing the mocked modules after calling `vi.mock()`.

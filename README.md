@@ -79,14 +79,30 @@ pnpm install
 # Build the project
 pnpm run build
 
+# Create a local package for testing
+pnpm run buildpack
+
 # Run tests
 pnpm test
 
-# Run linter
-pnpm run lint
+# Run example tests (requires buildpack step first)
+pnpm run run:examples:vitest
+```
 
-# Format code
-pnpm run format
+### Working with Examples
+
+The examples in the `examples/` directory use the local package as a dependency. Before running these examples, you must:
+
+1. Build the project: `pnpm run build`
+2. Create a local package: `pnpm run buildpack`
+
+This creates a `.tgz` file in the root directory that the examples use as their dependency source.
+
+```bash
+# Complete workflow to update and test examples
+pnpm run build      # Build the library
+pnpm run buildpack  # Package it for local use
+pnpm run run:examples:vitest  # Run the example tests
 ```
 
 ### Project Rules

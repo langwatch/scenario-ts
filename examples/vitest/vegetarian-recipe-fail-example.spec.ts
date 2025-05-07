@@ -1,7 +1,8 @@
 import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { CoreMessage, generateText } from "ai";
-import { modelRegistry } from "../../src/modelRegistry";
 import { describe, it, expect } from "vitest";
+
+import { modelRegistry } from "../../src/modelRegistry";
 
 /**
  * Example test for a vegetarian recipe agent.

@@ -1,3 +1,8 @@
+/* eslint-disable import/order */
+// NOTE: This file intentionally splits imports into two sections to ensure
+// vitest mocks are set up before the actual modules are imported.
+// This is a common pattern in Vitest/Jest testing to ensure that mocks
+// take effect before the actual module code is evaluated.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ScenarioTestingAgent } from "../ScenarioTestingAgent";
 import {
@@ -5,7 +10,6 @@ import {
   Verdict,
   TestingAgentResponseType,
 } from "../../shared/types";
-import { CoreMessage } from "ai";
 
 // Mock dependencies directly with vi.mock
 vi.mock("../../modelRegistry", () => ({
@@ -26,13 +30,19 @@ vi.mock("../tools", () => ({
   ToolDefinitionProvider: {
     getFinishTestTool: vi.fn(() => ({
       tool: { name: "finishTest" },
-      schema: { parse: (args: any) => args },
+
+      schema: {
+        parse: (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          args: any
+        ) => args,
+      },
     })),
   },
 }));
 
 // Import mocks after they've been defined
-import { generateText } from "ai";
+import { CoreMessage, generateText } from "ai";
 import { ModelConfig, modelRegistry } from "../../modelRegistry";
 
 describe("ScenarioTestingAgent", () => {
@@ -93,6 +103,7 @@ describe("ScenarioTestingAgent", () => {
       // Reset the mock implementation for each test with type assertions
       vi.mocked(generateText).mockResolvedValue({
         text: "Test response",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
     });
 
@@ -176,6 +187,7 @@ describe("ScenarioTestingAgent", () => {
             },
           },
         ],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
       const messages: CoreMessage[] = [
