@@ -1,4 +1,5 @@
-import { Scenario, TestableAgent, Verdict } from "../../dist/src";
+import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
+import { describe, it, expect } from "vitest";
 
 // A simple agent that just echoes back the message
 class EchoAgent implements TestableAgent {

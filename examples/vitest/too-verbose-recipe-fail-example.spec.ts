@@ -1,6 +1,7 @@
-import { Scenario, TestableAgent, Verdict } from "../../src";
+import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { CoreMessage, generateText } from "ai";
 import { modelRegistry } from "../../src/modelRegistry";
+import { describe, it, expect, vi } from "vitest";
 
 /**
  * Example test for a vegetarian recipe agent.
@@ -21,14 +22,7 @@ class VegetarianRecipeAgent implements TestableAgent {
       messages: [
         {
           role: "system",
-          content: `You are a terrible vegetarian recipe agent.
-          Given the user request, ask AT MOST ONE follow-up question,
-          then provide a complete recipe. Keep your responses concise and focused.
-          The recipe should be terrible, not at all vegetarian, and include meat.
-
-          You should refuse to answer any questions about the recipe, and insist on meat.
-          
-          `,
+          content: `You are a recipe agent, but you never actually provide a recipe. You're a tease.`,
         },
         ...this.history,
       ],
@@ -41,8 +35,6 @@ class VegetarianRecipeAgent implements TestableAgent {
   }
 }
 
-jest.setTimeout(60000);
-
 describe("Vegetarian Recipe Example", () => {
   it("tests vegetarian recipe agent capabilities", async () => {
     // Create a scenario to test the vegetarian recipe agent
@@ -54,10 +46,7 @@ describe("Vegetarian Recipe Example", () => {
         "Recipe includes a list of ingredients",
         "Recipe includes step-by-step cooking instructions",
       ],
-      failureCriteria: [
-        "The recipe is not vegetarian or includes meat",
-        "The agent asks more than two follow-up questions",
-      ],
+      failureCriteria: ["The recipe is not vegetarian or includes meat"],
     });
 
     // Create our test subject

@@ -1,6 +1,7 @@
-import { Scenario, TestableAgent, Verdict } from "../../src";
+import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { CoreMessage, generateText } from "ai";
 import { modelRegistry } from "../../src/modelRegistry";
+import { describe, it, expect } from "vitest";
 
 /**
  * Example test for a vegetarian recipe agent.
@@ -35,8 +36,6 @@ class VegetarianRecipeAgent implements TestableAgent {
     return { message: response.text };
   }
 }
-
-jest.setTimeout(60000);
 
 describe("Vegetarian Recipe Example", () => {
   it("tests vegetarian recipe agent capabilities", async () => {
