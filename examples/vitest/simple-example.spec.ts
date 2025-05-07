@@ -1,3 +1,9 @@
+/**
+ * Example test for a simple agent that just echoes back the message.
+ *
+ * This example demonstrates testing a basic AI agent that just echoes back the message
+ * using the `Scenario` and `TestableAgent` interfaces.
+ */
 import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { describe, it, expect } from "vitest";
 

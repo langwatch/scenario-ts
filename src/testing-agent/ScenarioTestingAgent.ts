@@ -10,7 +10,7 @@ import {
 
 // Default model configuration that can be overridden
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  modelId: "openai:gpt-4.1-nano",
+  modelId: "openai:gpt-4.1",
   temperature: 0,
   maxTokens: 1000,
 };

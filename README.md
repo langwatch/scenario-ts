@@ -2,6 +2,21 @@
 
 A TypeScript library for testing AI agents using scenarios.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Documentation](#documentation)
+  - [Architecture Decision Record](./docs/ADR-001-scenario-architecture.md)
+  - [Style Guide](./docs/STYLE_GUIDE.md)
+  - [Contributing Guide](./docs/CONTRIBUTING.md)
+  - [Testing Guide](./docs/TESTING.md)
+- [Development](#development)
+  - [Getting Started](#getting-started)
+  - [Working with Examples](#working-with-examples)
+  - [Project Rules](#project-rules)
+- [License](#license)
+
 ## Installation
 
 ```bash
@@ -86,7 +101,7 @@ pnpm run buildpack
 pnpm test
 
 # Run example tests (requires buildpack step first)
-pnpm run run:examples:vitest
+pnpm run examples:vitest:run test
 ```
 
 ### Working with Examples
@@ -102,7 +117,7 @@ This creates a `.tgz` file in the root directory that the examples use as their 
 # Complete workflow to update and test examples
 pnpm run build      # Build the library
 pnpm run buildpack  # Package it for local use
-pnpm run run:examples:vitest  # Run the example tests
+pnpm run examples:vitest:run test # Run the example tests
 ```
 
 ### Project Rules

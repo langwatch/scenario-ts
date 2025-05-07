@@ -118,7 +118,7 @@ To run integration tests, you need to:
 
 2. Then run the example tests:
    ```bash
-   pnpm run run:examples:vitest
+   pnpm run examples:vitest:run test
    ```
 
 The `buildpack` step is essential because the examples use the locally packaged version of the library. This workflow ensures that:
