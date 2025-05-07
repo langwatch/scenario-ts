@@ -3,31 +3,43 @@ import {
   TestingAgentResponse,
   TestingAgentResponseType,
   Verdict,
+  ModelConfig,
+  ScenarioConfig,
 } from "../shared/types";
 import { CoreMessage, generateText, LanguageModel } from "ai";
 import { ToolDefinitionProvider } from "./tools";
 
-const DEFAULT_MODEL: Parameters<typeof modelRegistry.languageModel>[0] =
-  "openai:gpt-4.1-nano";
+// Default model configuration that can be overridden
+const DEFAULT_MODEL_CONFIG: ModelConfig = {
+  modelId: "openai:gpt-4.1-nano",
+  temperature: 0,
+  maxTokens: 1000,
+};
 
-interface ScenarioTestingAgentConfig {
-  description: string;
-  strategy: string;
-  successCriteria?: string[];
-  failureCriteria?: string[];
-  maxTurns?: number;
+// Additional config options specific to the testing agent
+interface TestingAgentOptions {
+  modelConfig?: Partial<ModelConfig>; // Allow partial override of model config
 }
+
 // Main agent class, now more focused on its core responsibility
 export class ScenarioTestingAgent {
   private chatModel: LanguageModel;
   private systemPrompt: string;
+  private modelConfig: ModelConfig;
 
-  constructor(private config: ScenarioTestingAgentConfig) {
-    if (!config.successCriteria?.length && !config.failureCriteria?.length) {
+  constructor(private scenario: ScenarioConfig, options: TestingAgentOptions = {}) {
+
+    if (!scenario.successCriteria?.length && !scenario.failureCriteria?.length) {
       throw new Error("At least one success or failure criterion is required");
     }
 
-    this.chatModel = modelRegistry.languageModel(DEFAULT_MODEL);
+    // Merge default config with any provided overrides
+    this.modelConfig = {
+      ...DEFAULT_MODEL_CONFIG,
+      ...options.modelConfig,
+    };
+
+    this.chatModel = modelRegistry.languageModel(this.modelConfig.modelId);
     this.systemPrompt = this.buildSystemPrompt();
   }
 
@@ -43,13 +55,17 @@ export class ScenarioTestingAgent {
     const completion = await generateText({
       messages: conversation,
       model: this.chatModel,
-      temperature: 0,
-      maxTokens: 1000,
+      temperature: this.modelConfig.temperature,
+      maxTokens: this.modelConfig.maxTokens,
       tools: {
         finishTest: ToolDefinitionProvider.getFinishTestTool().tool,
       },
     });
 
+    return this.processResponse(completion);
+  }
+
+  private processResponse(completion: any): TestingAgentResponse {
     // Handle tool calls if present
     if (completion.toolCalls?.length) {
       const toolCall = completion.toolCalls[0];
@@ -83,16 +99,16 @@ export class ScenarioTestingAgent {
     Your goal is to interact with the Agent Under Test (user) as if you were a human user to see if it can complete the scenario successfully.
 
     Scenario:
-    ${this.config.description || "No scenario provided"}
+    ${this.scenario.description || "No scenario provided"}
 
     Strategy:
-    ${this.config.strategy || "Start with a first message and guide the conversation to play out the scenario."}
+    ${this.scenario.strategy || "Start with a first message and guide the conversation to play out the scenario."}
 
     Success Criteria:
-    ${this.config.successCriteria?.join("\n")}
+    ${this.scenario.successCriteria?.join("\n")}
 
     Failure Criteria:
-    ${this.config.failureCriteria?.join("\n")}
+    ${this.scenario.failureCriteria?.join("\n")}
 
     Execution Flow:
     1. Generate the first message to start the scenario

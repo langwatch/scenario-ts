@@ -64,6 +64,7 @@ For more detailed examples, see the [examples directory](./examples/).
 - [Architecture Decision Record](./docs/ADR-001-scenario-architecture.md) - Overview of the library's architecture and design decisions
 - [Style Guide](./docs/STYLE_GUIDE.md) - Coding standards and file structure patterns
 - [Contributing Guide](./docs/CONTRIBUTING.md) - How to contribute to this project
+- [Testing Guide](./docs/TESTING.md) - Testing approach, conventions, and best practices
 
 ## Development
 

@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "pnpm run clean && tsc && tsc -p tsconfig.esm.json",
-    "test": "jest --runInBand",
+    "test": "vitest run",
     "clean": "rm -rf dist",
     "prepublishOnly": "pnpm run build"
   },

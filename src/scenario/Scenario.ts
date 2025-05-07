@@ -2,10 +2,10 @@ import {
   type ScenarioConfig,
   type ScenarioResult,
   type RunOptions,
-} from "./shared/types";
-import { ConversationRunner } from "./conversation";
-import { ScenarioTestingAgent } from "./testing-agent";
-import { formatScenarioResult } from "./shared/utils/logging";
+} from "../shared/types";
+import { ConversationRunner } from "../conversation";
+import { ScenarioTestingAgent } from "../testing-agent";
+import { formatScenarioResult } from "../shared/utils/logging";
 
 /**
  * Represents a test scenario for evaluating AI agent behavior.
