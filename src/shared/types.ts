@@ -14,7 +14,7 @@ export enum Verdict {
  * Agent interfaces
  */
 export interface TestableAgent {
-  invoke(prompt: string): Promise<{ message: string }>;
+  invoke(prompt: string): Promise<{ text: string }>;
 }
 
 export interface TestingAgent {

@@ -45,7 +45,7 @@ describe("Vegetarian Recipe Example", () => {
 class VegetarianRecipeAgent implements TestableAgent {
   private history: Array<CoreMessage> = [];
 
-  async invoke(message: string): Promise<{ message: string }> {
+  async invoke(message: string) {
     // Add user message to history
     this.history.push({ role: "user", content: message });
 
@@ -66,6 +66,6 @@ class VegetarianRecipeAgent implements TestableAgent {
     // Add assistant response to history
     this.history.push({ role: "assistant", content: response.text });
 
-    return { message: response.text };
+    return response;
   }
 }

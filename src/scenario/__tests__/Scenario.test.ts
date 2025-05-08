@@ -66,8 +66,8 @@ describe("Scenario", () => {
 
   // Simple mock agent that fulfills the TestableAgent interface
   class MockAgent implements TestableAgent {
-    async invoke(prompt: string): Promise<{ message: string }> {
-      return { message: `Response to: ${prompt}` };
+    async invoke(prompt: string): Promise<{ text: string }> {
+      return { text: `Response to: ${prompt}` };
     }
   }
 

@@ -76,12 +76,12 @@ export class ConversationRunner {
       //--------------------------------
       // Get the agent's response
       //--------------------------------
-      const { message } = await this.withAgentSpinner(async () => {
+      const { text } = await this.withAgentSpinner(async () => {
         return await this.config.agent.invoke(response.text);
       });
 
       // Record the agent's message
-      this.messages.push({ role: "assistant", content: message });
+      this.messages.push({ role: "assistant", content: text });
     }
 
     // If we get here, we've hit max turns

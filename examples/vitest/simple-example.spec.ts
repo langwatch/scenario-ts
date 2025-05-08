@@ -9,8 +9,8 @@ import { describe, it, expect } from "vitest";
 
 // A simple agent that just echoes back the message
 class EchoAgent implements TestableAgent {
-  async invoke(message: string): Promise<{ message: string }> {
-    return { message: `You said: ${message}` };
+  async invoke(message: string) {
+    return { text: `You said: ${message}` };
   }
 }
 
