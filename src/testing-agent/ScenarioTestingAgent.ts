@@ -3,9 +3,10 @@ import { modelRegistry, type ModelConfig } from "../modelRegistry";
 import { ToolDefinitionProvider } from "./tools";
 import {
   TestingAgentResponse,
-  TestingAgentResponseType,
   Verdict,
   ScenarioConfig,
+  TestingAgent,
+  ScenarioResult,
 } from "../shared/types";
 
 // Default model configuration that can be overridden
@@ -21,7 +22,7 @@ interface TestingAgentOptions {
 }
 
 // Main agent class, now more focused on its core responsibility
-export class ScenarioTestingAgent {
+export class ScenarioTestingAgent implements TestingAgent {
   private chatModel: LanguageModel;
   private systemPrompt: string;
   private modelConfig: ModelConfig;
@@ -42,7 +43,11 @@ export class ScenarioTestingAgent {
     this.systemPrompt = this.buildSystemPrompt();
   }
 
-  async invoke(messages: CoreMessage[]): Promise<TestingAgentResponse> {
+  async invoke(messages: CoreMessage[], {
+    onFinishTest
+  }: {
+    onFinishTest?: (response: ScenarioResult) => void;
+  } = {}): Promise<TestingAgentResponse> {
     const conversation: CoreMessage[] = [
       {
         role: "system",
@@ -52,7 +57,10 @@ export class ScenarioTestingAgent {
     ];
 
     const completion = await this.generateText(conversation);
-    return this.processResponse(completion);
+
+    return this.processResponse(completion, {
+      onFinishTest,
+    });
   }
 
   /**
@@ -60,7 +68,11 @@ export class ScenarioTestingAgent {
    * @param completion - The completion of a text generation
    * @returns The testing agent response
    */
-  private processResponse(completion: Awaited<ReturnType<typeof this.generateText>>): TestingAgentResponse {
+  private processResponse(completion: Awaited<ReturnType<typeof this.generateText>>, {
+    onFinishTest,
+  }: {
+    onFinishTest?: (response: ScenarioResult) => void;
+  }) {
     // Handle tool calls if present
     if (completion.toolCalls?.length) {
       const toolCall = completion.toolCalls[0];
@@ -68,22 +80,18 @@ export class ScenarioTestingAgent {
       const args = schema.parse(toolCall.args);
 
       if (toolCall.toolName === "finishTest") {
-        return {
-          type: TestingAgentResponseType.FinishTest,
+        onFinishTest?.({
           verdict: args.verdict as Verdict,
           reasoning: args.reasoning,
           metCriteria: args.details.metCriteria,
           unmetCriteria: args.details.unmetCriteria,
           triggeredFailures: args.details.triggeredFailures,
-        };
+        });
       }
     }
 
     // Regular message response
-    return {
-      type: TestingAgentResponseType.Message,
-      message: completion.text,
-    };
+    return completion;
   }
 
   /**

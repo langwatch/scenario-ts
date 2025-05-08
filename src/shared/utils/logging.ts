@@ -2,9 +2,7 @@ import chalk from "chalk";
 
 // Need to import these types for the type guards
 import {
-  TestingAgentResponseFinishTest,
   ScenarioResult,
-  TestingAgentResponseType,
   Verdict,
 } from "../types";
 
@@ -55,7 +53,7 @@ function printReasoning(reasoning: string | null) {
  * Prints all criteria results (met, unmet, and failures)
  * @param result The test result containing criteria information
  */
-function printCriteria(result: TestingAgentResponseFinishTest) {
+function printCriteria(result: ScenarioResult) {
   printMetCriteria(result.metCriteria);
   printUnmetCriteria(result.unmetCriteria);
   printTriggeredFailures(result.triggeredFailures);
@@ -111,14 +109,14 @@ function printFooter() {
 }
 
 /**
- * Type guard to check if the result is a TestingAgentResponseFinishTest result
+ * Type guard to check if the result is a ScenarioResult result
  * @param result The scenario result to check
  */
 function isFinishTestResponse(
   result: ScenarioResult
-): result is TestingAgentResponseFinishTest {
+): result is ScenarioResult {
   return (
-    "type" in result && result.type === TestingAgentResponseType.FinishTest
+    "verdict" in result
   );
 }
 

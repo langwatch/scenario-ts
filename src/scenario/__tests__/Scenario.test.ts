@@ -8,7 +8,6 @@ import { Scenario } from "../Scenario";
 
 // Prepare mock result
 const mockResult: ScenarioResult = {
-  type: TestingAgentResponseType.FinishTest,
   verdict: Verdict.Success,
   reasoning: "Test passed",
   metCriteria: ["Success criterion"],
@@ -50,7 +49,6 @@ import { ConversationRunner } from "../../conversation";
 import {
   ScenarioConfig,
   Verdict,
-  TestingAgentResponseType,
   ScenarioResult,
   TestableAgent,
   RunOptions,
@@ -100,7 +98,6 @@ describe("Scenario", () => {
       const options: RunOptions = {
         agent: mockAgent,
         maxTurns: 5,
-        verbose: true,
       };
 
       await scenario.run(options);
@@ -109,7 +106,6 @@ describe("Scenario", () => {
         expect.objectContaining({
           agent: mockAgent,
           maxTurns: 5,
-          verbose: true,
         })
       );
     });
@@ -129,13 +125,17 @@ describe("Scenario", () => {
     });
 
     it("should call formatScenarioResult when verbose is true", async () => {
-      await scenario.run({ agent: mockAgent, verbose: true });
+      process.env.VERBOSE = "true";
+      await scenario.run({ agent: mockAgent });
+      process.env.VERBOSE = "false";
 
       expect(formatScenarioResult).toHaveBeenCalled();
     });
 
     it("should not call formatScenarioResult when verbose is false", async () => {
-      await scenario.run({ agent: mockAgent, verbose: false });
+      process.env.VERBOSE = "false";
+      await scenario.run({ agent: mockAgent });
+      process.env.VERBOSE = "false";
 
       expect(formatScenarioResult).not.toHaveBeenCalled();
     });

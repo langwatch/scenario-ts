@@ -7,6 +7,7 @@ export enum Verdict {
   Success = "success",
   Failure = "failure",
   Inconclusive = "inconclusive",
+  Error = "error",
 }
 
 /**
@@ -17,7 +18,12 @@ export interface TestableAgent {
 }
 
 export interface TestingAgent {
-  invoke(conversation: CoreMessage[]): Promise<TestingAgentResponse>;
+  invoke(
+    conversation: CoreMessage[],
+    options?: {
+      onFinishTest?: (response: ScenarioResult) => void;
+    }
+  ): Promise<TestingAgentResponse>;
 }
 
 /**
@@ -35,30 +41,7 @@ export interface RunOptions {
   maxTurns?: number;
 }
 
-/**
- * Criterion status tracking
- */
-export interface CriterionStatus {
-  criterion: string;
-  met: boolean;
-  reason: string;
-}
-
-/**
- * Testing agent response types
- */
-export enum TestingAgentResponseType {
-  Message = "message",
-  FinishTest = "finish_test",
-}
-
-type TestingAgentResponseMessage = {
-  type: TestingAgentResponseType.Message;
-  message: string;
-};
-
-export type TestingAgentResponseFinishTest = {
-  type: TestingAgentResponseType.FinishTest;
+export type ScenarioResult = {
   verdict: Verdict;
   reasoning: string | null;
   metCriteria: string[];
@@ -66,11 +49,7 @@ export type TestingAgentResponseFinishTest = {
   triggeredFailures: string[];
 };
 
-export type TestingAgentResponse =
-  | TestingAgentResponseMessage
-  | TestingAgentResponseFinishTest;
+export interface TestingAgentResponse {
+  text: string;
+}
 
-/**
- * Scenario result type
- */
-export type ScenarioResult = TestingAgentResponseFinishTest;

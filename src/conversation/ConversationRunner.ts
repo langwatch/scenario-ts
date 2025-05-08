@@ -6,8 +6,7 @@ import {
   ScenarioResult,
   TestableAgent,
   TestingAgent,
-  TestingAgentResponseFinishTest,
-  TestingAgentResponseType,
+  ScenarioResult,
 } from "../shared/types";
 /**
  * ConversationRunner - Manages the conversation flow between a testable agent and a testing agent
@@ -24,7 +23,7 @@ export class ConversationRunner {
   /** Stores the conversation history between agents */
   readonly messages: CoreMessage[] = [];
   /** Logger */
-  private _logger?: ConversationLogger;
+  private logger = new ConversationLogger();
 
   /**
    * Creates a new ConversationRunner instance
@@ -34,14 +33,12 @@ export class ConversationRunner {
    * @param config.testingAgent - The agent that simulates user behavior
    * @param config.maxTurns - Maximum number of conversation turns before ending
    * @param config.verbose - Whether to display detailed logging during execution
-   * @param config.logger - The conversation logger
    */
   constructor(
     private config: {
       agent: TestableAgent;
       testingAgent: TestingAgent;
       maxTurns: number;
-      logger?: ConversationLogger;
     }
   ) {}
 
@@ -52,89 +49,87 @@ export class ConversationRunner {
    */
   async run(): Promise<ScenarioResult> {
     const { maxTurns } = this.config;
+    // Result of the test
+    let result: ScenarioResult | undefined;
 
     while (this.messages.length < maxTurns) {
-      const response = await this.getTestingAgentResponse();
+      //--------------------------------
+      // Get the testing agent's response
+      //--------------------------------
+      const response = await this.withUserSpinner(async () => {
+        return await this.config.testingAgent.invoke(this.messages, {
+          onFinishTest: (response) => {
+            result = response;
+          },
+        });
+      });
 
-      if (response.type === TestingAgentResponseType.FinishTest) {
-        return response as TestingAgentResponseFinishTest;
+      // Record testing agent's message as "user" since it's simulating a user
+      this.messages.push({ role: "user", content: response.text });
+
+      // If we get a test result,
+      // exit the loop and return the result
+      if (result) {
+        return result;
       }
 
-      if (response.type === TestingAgentResponseType.Message) {
-        // Record testing agent's message as "user" since it's simulating a user
-        this.messages.push({ role: "user", content: response.message });
-        const { message } = await this.getAgentResponse(response.message);
-        this.messages.push({ role: "assistant", content: message });
-      }
+      //--------------------------------
+      // Get the agent's response
+      //--------------------------------
+      const { message } = await this.withAgentSpinner(async () => {
+        return await this.config.agent.invoke(response.text);
+      });
+
+      // Record the agent's message
+      this.messages.push({ role: "assistant", content: message });
     }
 
+    // If we get here, we've hit max turns
+    // We need to give the testing agent a chance to make a final verdict
     this.messages.push({
       role: "assistant",
       content: `System:
-
 <finish_test>
 This is the last message, conversation has reached the maximum number of turns, give your final verdict,
 if you don't have enough information to make a verdict, say inconclusive with max turns reached.
 </finish_test>`,
     });
 
-    const response = await this.getTestingAgentResponse();
+    // One final attempt to get a test result
+    await this.withUserSpinner(async () => {
+      return await this.config.testingAgent.invoke(this.messages, {
+        onFinishTest: (response) => {
+          result = response;
+        },
+      });
+    });
 
-    if (response.type === TestingAgentResponseType.FinishTest) {
-      return response as TestingAgentResponseFinishTest;
+    if (result) {
+      return result;
     }
 
     throw new MaxTurnsExceededError("Max turns exceeded");
   }
 
-  /**
-   * Gets a response from the testing agent
-   *
-   * @returns The testing agent's response (message or test conclusion)
-   * @private
-   */
-  private async getTestingAgentResponse() {
-    const { testingAgent } = this.config;
-
+  private async withUserSpinner<T>(fn: () => Promise<T>): Promise<T> {
     if (process.env.VERBOSE === "true") {
       this.logger.startUserSpinner();
-      const response = await testingAgent.invoke(this.messages);
+      const result = await fn();
       this.logger.stopUserSpinner();
-      if (response.type === TestingAgentResponseType.Message) {
-        this.logger.printUserMessage(response.message);
-      }
-      return response;
+      return result;
     }
 
-    return await testingAgent.invoke(this.messages);
+    return fn();
   }
 
-  /**
-   * Gets a response from the agent being tested
-   *
-   * @param input - The message to send to the agent
-   * @returns The agent's response message
-   * @private
-   */
-  private async getAgentResponse(input: string) {
-    const { agent } = this.config;
-
+  private async withAgentSpinner<T>(fn: () => Promise<T>): Promise<T> {
     if (process.env.VERBOSE === "true") {
       this.logger.startAgentSpinner();
-      const { message } = await agent.invoke(input);
+      const result = await fn();
       this.logger.stopAgentSpinner();
-      this.logger.printAgentMessage(message);
-      return { message };
+      return result;
     }
 
-    return await agent.invoke(input);
-  }
-
-  private get logger() {
-    if (this.config.logger) {
-      return this.config.logger;
-    }
-
-    return (this._logger ??= new ConversationLogger());
+    return fn();
   }
 }

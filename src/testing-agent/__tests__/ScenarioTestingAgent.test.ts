@@ -5,11 +5,7 @@
 // take effect before the actual module code is evaluated.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ScenarioTestingAgent } from "../ScenarioTestingAgent";
-import {
-  ScenarioConfig,
-  Verdict,
-  TestingAgentResponseType,
-} from "../../shared/types";
+import { ScenarioConfig, Verdict } from "../../shared/types";
 
 // Mock dependencies directly with vi.mock
 vi.mock("../../modelRegistry", () => ({
@@ -115,7 +111,7 @@ describe("ScenarioTestingAgent", () => {
         },
       ];
 
-      await agent.invoke(messages);
+      await agent.invoke(messages, {});
 
       // Check that generateText was called with a conversation that includes
       // a system message followed by the flipped user message
@@ -135,7 +131,7 @@ describe("ScenarioTestingAgent", () => {
         { role: "system", content: "System message" },
       ];
 
-      await agent.invoke(messages);
+      await agent.invoke(messages, {});
 
       const mockCall = vi.mocked(generateText).mock.calls[0][0];
 
@@ -162,11 +158,10 @@ describe("ScenarioTestingAgent", () => {
         },
       ];
 
-      const response = await agent.invoke(messages);
+      const response = await agent.invoke(messages, {});
 
       expect(response).toEqual({
-        type: TestingAgentResponseType.Message,
-        message: "Test response",
+        text: "Test response",
       });
     });
 
@@ -197,15 +192,16 @@ describe("ScenarioTestingAgent", () => {
         },
       ];
 
-      const response = await agent.invoke(messages);
-
-      expect(response).toEqual({
-        type: TestingAgentResponseType.FinishTest,
-        verdict: Verdict.Success,
-        reasoning: "Test passed",
-        metCriteria: ["Success criterion 1"],
-        unmetCriteria: [],
-        triggeredFailures: [],
+      await agent.invoke(messages, {
+        onFinishTest: (result) => {
+          expect(result).toEqual({
+            verdict: Verdict.Success,
+            reasoning: "Test passed",
+            metCriteria: ["Success criterion 1"],
+            unmetCriteria: [],
+            triggeredFailures: [],
+          });
+        },
       });
     });
   });
