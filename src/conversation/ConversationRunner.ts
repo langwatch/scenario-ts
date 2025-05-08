@@ -2,11 +2,11 @@ import { CoreMessage } from "ai";
 
 import { ConversationLogger } from "./ConversationLogger";
 import { MaxTurnsExceededError } from "./errors";
-import {
+import type {
   ScenarioResult,
   TestableAgent,
   TestingAgent,
-  ScenarioResult,
+  TestingAgentResponse,
 } from "../shared/types";
 /**
  * ConversationRunner - Manages the conversation flow between a testable agent and a testing agent
@@ -111,22 +111,24 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     throw new MaxTurnsExceededError("Max turns exceeded");
   }
 
-  private async withUserSpinner<T>(fn: () => Promise<T>): Promise<T> {
+  private async withUserSpinner<T extends TestingAgentResponse>(fn: () => Promise<T>): Promise<T> {
     if (process.env.VERBOSE === "true") {
       this.logger.startUserSpinner();
       const result = await fn();
       this.logger.stopUserSpinner();
+      this.logger.printUserMessage(result.text);
       return result;
     }
 
     return fn();
   }
 
-  private async withAgentSpinner<T>(fn: () => Promise<T>): Promise<T> {
+  private async withAgentSpinner<T extends TestingAgentResponse>(fn: () => Promise<T>): Promise<T> {
     if (process.env.VERBOSE === "true") {
       this.logger.startAgentSpinner();
       const result = await fn();
       this.logger.stopAgentSpinner();
+      this.logger.printAgentMessage(result.text);
       return result;
     }
 

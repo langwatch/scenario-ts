@@ -45,7 +45,6 @@ export class Scenario {
    * @param options - Configuration for this specific run:
    *   - agent: The testable agent to evaluate
    *   - maxTurns: Maximum conversation turns before ending (defaults to 2)
-   *   - verbose: Whether to log detailed information during the run (defaults to false)
    *
    * @returns A ScenarioResult containing the outcome of the test, including
    *          success/failure status, conversation history, and reasoning

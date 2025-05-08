@@ -21,7 +21,11 @@ export interface TestingAgent {
   invoke(
     conversation: CoreMessage[],
     options?: {
-      onFinishTest?: (response: ScenarioResult) => void;
+      /**
+       * Callback function to handle the test result
+       * @param results - The test result
+       */
+      onFinishTest?: (results: ScenarioResult) => void;
     }
   ): Promise<TestingAgentResponse>;
 }

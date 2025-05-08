@@ -58,9 +58,11 @@ export class ScenarioTestingAgent implements TestingAgent {
 
     const completion = await this.generateText(conversation);
 
-    return this.processResponse(completion, {
+    this.processToolCalls(completion.toolCalls, {
       onFinishTest,
     });
+
+    return completion;
   }
 
   /**
@@ -68,14 +70,14 @@ export class ScenarioTestingAgent implements TestingAgent {
    * @param completion - The completion of a text generation
    * @returns The testing agent response
    */
-  private processResponse(completion: Awaited<ReturnType<typeof this.generateText>>, {
+  private processToolCalls(toolCalls: Awaited<ReturnType<typeof this.generateText>>['toolCalls'], {
     onFinishTest,
   }: {
     onFinishTest?: (response: ScenarioResult) => void;
   }) {
     // Handle tool calls if present
-    if (completion.toolCalls?.length) {
-      const toolCall = completion.toolCalls[0];
+    if (toolCalls.length) {
+      const toolCall = toolCalls[0];
       const { schema } = ToolDefinitionProvider.getFinishTestTool();
       const args = schema.parse(toolCall.args);
 
@@ -89,9 +91,6 @@ export class ScenarioTestingAgent implements TestingAgent {
         });
       }
     }
-
-    // Regular message response
-    return completion;
   }
 
   /**

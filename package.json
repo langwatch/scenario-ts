@@ -16,7 +16,7 @@
     "watch": "pnpm run build -- --watch src",
     "test": "vitest run",
     "lint": "eslint .",
-    "examples:vitest:run": "pnpm run buildpack && pnpm -F vitest run",
+    "examples:vitest:run": "pnpm run buildpack && (cd examples/vitest && pnpm install) && pnpm -F vitest run",
     "prepublishOnly": "pnpm run build"
   },
   "publishConfig": {
