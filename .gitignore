@@ -154,3 +154,9 @@ dist
 
 # Testing
 coverage
+
+# MacOS
+.DS_Store
+
+# Results files
+result.csv

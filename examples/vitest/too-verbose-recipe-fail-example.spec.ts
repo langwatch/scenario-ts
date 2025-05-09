@@ -4,11 +4,12 @@
  * This example demonstrates testing an AI agent that generates vegetarian recipes
  * but fails because it's too verbose.
  */
+import * as fs from "fs";
 import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { CoreMessage, generateText } from "ai";
 import { describe, it, expect } from "vitest";
-
 import { modelRegistry } from "../../src/modelRegistry";
+import { resultToCSV } from "../../src/shared/utils/scenario-result-to-csv";
 
 describe("Vegetarian Recipe Example", () => {
   it("tests vegetarian recipe agent capabilities", async () => {
@@ -32,6 +33,9 @@ describe("Vegetarian Recipe Example", () => {
       agent,
       maxTurns: 5,
     });
+
+    // Write the result to a CSV file
+    fs.writeFileSync("result.csv", resultToCSV(result));
 
     // Check the results
     expect(result.verdict).toBe(Verdict.Failure);

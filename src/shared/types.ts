@@ -25,7 +25,7 @@ export interface TestingAgent {
        * Callback function to handle the test result
        * @param results - The test result
        */
-      onFinishTest?: (results: ScenarioResult) => void;
+      onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
     }
   ): Promise<TestingAgentResponse>;
 }
@@ -47,6 +47,7 @@ export interface RunOptions {
 
 export type ScenarioResult = {
   verdict: Verdict;
+  conversation: CoreMessage[];
   reasoning: string | null;
   metCriteria: string[];
   unmetCriteria: string[];
@@ -56,4 +57,3 @@ export type ScenarioResult = {
 export interface TestingAgentResponse {
   text: string;
 }
-

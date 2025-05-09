@@ -50,7 +50,7 @@ export class ConversationRunner {
   async run(): Promise<ScenarioResult> {
     const { maxTurns } = this.config;
     // Result of the test
-    let result: ScenarioResult | undefined;
+    let result: Omit<ScenarioResult, "conversation"> | undefined;
 
     while (this.messages.length < maxTurns) {
       //--------------------------------
@@ -70,7 +70,10 @@ export class ConversationRunner {
       // If we get a test result,
       // exit the loop and return the result
       if (result) {
-        return result;
+        return {
+          ...result,
+          conversation: this.messages,
+        };
       }
 
       //--------------------------------
@@ -105,13 +108,18 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     });
 
     if (result) {
-      return result;
+      return {
+        ...result,
+        conversation: this.messages,
+      };
     }
 
     throw new MaxTurnsExceededError("Max turns exceeded");
   }
 
-  private async withUserSpinner<T extends TestingAgentResponse>(fn: () => Promise<T>): Promise<T> {
+  private async withUserSpinner<T extends TestingAgentResponse>(
+    fn: () => Promise<T>
+  ): Promise<T> {
     if (process.env.VERBOSE === "true") {
       this.logger.startUserSpinner();
       const result = await fn();
@@ -123,7 +131,9 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     return fn();
   }
 
-  private async withAgentSpinner<T extends TestingAgentResponse>(fn: () => Promise<T>): Promise<T> {
+  private async withAgentSpinner<T extends TestingAgentResponse>(
+    fn: () => Promise<T>
+  ): Promise<T> {
     if (process.env.VERBOSE === "true") {
       this.logger.startAgentSpinner();
       const result = await fn();

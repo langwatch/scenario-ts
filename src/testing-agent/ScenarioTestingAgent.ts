@@ -2,7 +2,6 @@ import { CoreMessage, generateText, LanguageModel } from "ai";
 import { modelRegistry, type ModelConfig } from "../modelRegistry";
 import { ToolDefinitionProvider } from "./tools";
 import {
-  TestingAgentResponse,
   Verdict,
   ScenarioConfig,
   TestingAgent,
@@ -27,9 +26,14 @@ export class ScenarioTestingAgent implements TestingAgent {
   private systemPrompt: string;
   private modelConfig: ModelConfig;
 
-  constructor(private scenario: ScenarioConfig, options: TestingAgentOptions = {}) {
-
-    if (!scenario.successCriteria?.length && !scenario.failureCriteria?.length) {
+  constructor(
+    private scenario: ScenarioConfig,
+    options: TestingAgentOptions = {}
+  ) {
+    if (
+      !scenario.successCriteria?.length &&
+      !scenario.failureCriteria?.length
+    ) {
       throw new Error("At least one success or failure criterion is required");
     }
 
@@ -43,11 +47,13 @@ export class ScenarioTestingAgent implements TestingAgent {
     this.systemPrompt = this.buildSystemPrompt();
   }
 
-  async invoke(messages: CoreMessage[], {
-    onFinishTest
-  }: {
-    onFinishTest?: (response: ScenarioResult) => void;
-  } = {}): Promise<TestingAgentResponse> {
+  async invoke(
+    messages: CoreMessage[],
+    options: {
+      onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
+    }
+  ) {
+    const { onFinishTest } = options;
     const conversation: CoreMessage[] = [
       {
         role: "system",
@@ -70,11 +76,13 @@ export class ScenarioTestingAgent implements TestingAgent {
    * @param completion - The completion of a text generation
    * @returns The testing agent response
    */
-  private processToolCalls(toolCalls: Awaited<ReturnType<typeof this.generateText>>['toolCalls'], {
-    onFinishTest,
-  }: {
-    onFinishTest?: (response: ScenarioResult) => void;
-  }) {
+  private processToolCalls(
+    toolCalls: Awaited<ReturnType<typeof this.generateText>>["toolCalls"],
+    options: {
+      onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
+    }
+  ) {
+    const { onFinishTest } = options;
     // Handle tool calls if present
     if (toolCalls.length) {
       const toolCall = toolCalls[0];
@@ -121,7 +129,10 @@ export class ScenarioTestingAgent implements TestingAgent {
     ${this.scenario.description || "No scenario provided"}
 
     Strategy:
-    ${this.scenario.strategy || "Start with a first message and guide the conversation to play out the scenario."}
+    ${
+      this.scenario.strategy ||
+      "Start with a first message and guide the conversation to play out the scenario."
+    }
 
     Success Criteria:
     ${this.scenario.successCriteria?.join("\n")}
