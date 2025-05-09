@@ -36,6 +36,7 @@ export function resultToCSV(
           (message) => message.content !== result.forceFinishTestMessage
         )
       ),
+      "Force Finish Test Message": result.forceFinishTestMessage,
       "Scenario Description": result.description,
       "Scenario Strategy": result.strategy,
       "Scenario Success Criteria": JSON.stringify(result.successCriteria),
@@ -60,6 +61,9 @@ export function resultToCSV(
       "Triggered Failures": "Triggered Failures",
       "Conversation Length": "Conversation Length",
       Conversation: "Conversation",
+      ConversationWithoutForceFinishTestMessage:
+        "Conversation Without Force Finish Test Message",
+      "Force Finish Test Message": "Force Finish Test Message",
       "Scenario Description": "Scenario Description",
       "Scenario Strategy": "Scenario Strategy",
       "Scenario Success Criteria": "Scenario Success Criteria",

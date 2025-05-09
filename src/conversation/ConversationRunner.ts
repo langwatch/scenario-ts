@@ -71,8 +71,10 @@ export class ConversationRunner {
     const { maxTurns } = this.config;
     // Result of the test
     let result: Omit<ScenarioResult, "conversation"> | undefined;
+    let turnCount = 0;
 
-    while (this.messages.length < maxTurns) {
+    while (turnCount < maxTurns) {
+      turnCount++;
       //--------------------------------
       // Get the testing agent's response
       //--------------------------------
