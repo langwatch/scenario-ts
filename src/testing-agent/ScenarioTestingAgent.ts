@@ -6,6 +6,7 @@ import {
   ScenarioConfig,
   TestingAgent,
   ScenarioResult,
+  TestingAgentConfig,
 } from "../shared/types";
 
 // Default model configuration that can be overridden
@@ -23,7 +24,7 @@ interface TestingAgentOptions {
 // Main agent class, now more focused on its core responsibility
 export class ScenarioTestingAgent implements TestingAgent {
   private chatModel: LanguageModel;
-  private systemPrompt: string;
+  readonly systemPrompt: string;
   private modelConfig: ModelConfig;
 
   constructor(
@@ -45,6 +46,13 @@ export class ScenarioTestingAgent implements TestingAgent {
 
     this.chatModel = modelRegistry.languageModel(this.modelConfig.modelId);
     this.systemPrompt = this.buildSystemPrompt();
+  }
+
+  getTestingAgentConfig(): TestingAgentConfig {
+    return {
+      systemPrompt: this.systemPrompt,
+      ...this.modelConfig,
+    };
   }
 
   async invoke(

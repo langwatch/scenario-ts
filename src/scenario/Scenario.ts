@@ -52,14 +52,38 @@ export class Scenario {
   public async run({
     agent,
     maxTurns = 2,
+    onMessages,
+    onFinish,
   }: RunOptions): Promise<ScenarioResult> {
     const testingAgent = this.scenarioTestingAgent;
+
+    const forceFinishTestMessage = `System:
+<finish_test>
+This is the last message, conversation has reached the maximum number of turns, give your final verdict,
+if you don't have enough information to make a verdict, say inconclusive with max turns reached.
+</finish_test>`;
 
     const runner = new ConversationRunner({
       agent,
       testingAgent,
       maxTurns,
+      forceFinishTestMessage,
     });
+
+    if (onMessages) {
+      runner.on("messages", onMessages);
+    }
+
+    if (onFinish) {
+      runner.on("finish", (result) => {
+        onFinish({
+          ...result,
+          ...this.config,
+          ...testingAgent.getTestingAgentConfig(),
+          forceFinishTestMessage,
+        });
+      });
+    }
 
     try {
       const result = await runner.run();
