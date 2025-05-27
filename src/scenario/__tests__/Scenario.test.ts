@@ -28,6 +28,7 @@ const mockRunFn = vi.fn().mockResolvedValue(mockResult);
 // Create a mock instance
 const mockConversationRunnerInstance = {
   run: mockRunFn,
+  on: vi.fn(),
 };
 
 // Mock the conversation module

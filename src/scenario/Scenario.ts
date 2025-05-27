@@ -1,12 +1,26 @@
+import { randomUUID } from "crypto";
+import {
+  BaseEvent,
+  EventType,
+  CustomEvent,
+  MessagesSnapshotEvent,
+} from "@ag-ui/core";
+import { Subject } from "rxjs";
 import { ConversationRunner } from "../conversation";
 import { MaxTurnsExceededError } from "../conversation/errors";
 import {
   type ScenarioConfig,
   type ScenarioResult,
   type RunOptions,
+  Verdict,
 } from "../shared/types";
 import { formatScenarioResult } from "../shared/utils/logging";
 import { ScenarioTestingAgent } from "../testing-agent";
+
+enum ScenarioEvents {
+  SCENARIO_STARTED = "SCENARIO_STARTED",
+  SCENARIO_FINISHED = "SCENARIO_FINISHED",
+}
 
 /**
  * Represents a test scenario for evaluating AI agent behavior.
@@ -18,6 +32,9 @@ import { ScenarioTestingAgent } from "../testing-agent";
 export class Scenario {
   /** Lazily initialized testing agent instance */
   private _scenarioTestingAgent!: ScenarioTestingAgent;
+  private events$ = new Subject<
+    BaseEvent | CustomEvent | MessagesSnapshotEvent
+  >();
 
   /**
    * Creates a new scenario with the specified configuration.
@@ -25,7 +42,9 @@ export class Scenario {
    * @param config - The configuration that defines the scenario's behavior,
    *                 including description, strategy, and success/failure criteria
    */
-  constructor(public readonly config: ScenarioConfig) {}
+  constructor(public readonly config: ScenarioConfig) {
+    this.handleEvents();
+  }
 
   /**
    * Gets the testing agent instance, creating it if it doesn't exist yet.
@@ -33,10 +52,15 @@ export class Scenario {
    *
    * @returns The ScenarioTestingAgent instance for this scenario
    */
-  private get scenarioTestingAgent(): ScenarioTestingAgent {
+  get scenarioTestingAgent(): ScenarioTestingAgent {
     return (this._scenarioTestingAgent ??= new ScenarioTestingAgent(
       this.config
     ));
+  }
+
+  public setScenarioTestingAgent(agent: ScenarioTestingAgent): Scenario {
+    this._scenarioTestingAgent = agent;
+    return this;
   }
 
   /**
@@ -55,6 +79,11 @@ export class Scenario {
     onMessages,
     onFinish,
   }: RunOptions): Promise<ScenarioResult> {
+    this.events$.next({
+      type: EventType.CUSTOM,
+      name: ScenarioEvents.SCENARIO_STARTED,
+    });
+
     const testingAgent = this.scenarioTestingAgent;
 
     const forceFinishTestMessage = `System:
@@ -70,20 +99,39 @@ if you don't have enough information to make a verdict, say inconclusive with ma
       forceFinishTestMessage,
     });
 
-    if (onMessages) {
-      runner.on("messages", onMessages);
-    }
+    runner.on("messages", (messages) => {
+      if (onMessages) {
+        onMessages(messages);
+      }
 
-    if (onFinish) {
-      runner.on("finish", (result) => {
+      this.events$.next({
+        type: EventType.MESSAGES_SNAPSHOT,
+        messages: messages.map((message) => ({
+          id: randomUUID(),
+          role: message.role as "user" | "assistant",
+          content: message.content as string,
+        })),
+      });
+    });
+
+    runner.on("finish", (result) => {
+      if (onFinish) {
         onFinish({
           ...result,
           ...this.config,
           ...testingAgent.getTestingAgentConfig(),
           forceFinishTestMessage,
         });
+      }
+
+      this.events$.next({
+        type: EventType.CUSTOM,
+        name: ScenarioEvents.SCENARIO_FINISHED,
+        value: {
+          success: result.verdict === Verdict.Success,
+        },
       });
-    }
+    });
 
     try {
       const result = await runner.run();
@@ -101,10 +149,27 @@ if you don't have enough information to make a verdict, say inconclusive with ma
             runner.messages
           );
         }
+
         throw error;
       }
 
       throw error;
+    } finally {
+      this.events$.complete();
     }
+  }
+
+  private handleEvents() {
+    this.events$.subscribe((event) => {
+      const endpoint = process.env.AGUI_EVENTS_ENDPOINT;
+      if (endpoint) {
+        return fetch(endpoint, {
+          method: "POST",
+          body: JSON.stringify(event),
+        });
+      } else {
+        return;
+      }
+    });
   }
 }
