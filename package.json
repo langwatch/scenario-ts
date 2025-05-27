@@ -17,7 +17,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "lint": "eslint .",
-    "examples:vitest:run": "pnpm run buildpack && (cd examples/vitest && pnpm install) && pnpm -F vitest run",
+    "examples:vitest:run": "pnpm run buildpack && (cd examples/vitest && pnpm install) && pnpm -F vitest run test",
     "prepublishOnly": "pnpm run build"
   },
   "publishConfig": {

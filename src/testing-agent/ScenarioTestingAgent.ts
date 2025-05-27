@@ -59,7 +59,7 @@ export class ScenarioTestingAgent implements TestingAgent {
     messages: CoreMessage[],
     options: {
       onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
-    }
+    } = {}
   ) {
     const { onFinishTest } = options;
     const conversation: CoreMessage[] = [
@@ -88,7 +88,7 @@ export class ScenarioTestingAgent implements TestingAgent {
     toolCalls: Awaited<ReturnType<typeof this.generateText>>["toolCalls"] | undefined,
     options: {
       onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
-    }
+    } = {}
   ) {
     const { onFinishTest } = options;
     // Handle tool calls if present

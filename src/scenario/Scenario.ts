@@ -1,13 +1,15 @@
 import { randomUUID } from "crypto";
-import {
-  BaseEvent,
-  EventType,
-  CustomEvent,
-  MessagesSnapshotEvent,
-} from "@ag-ui/core";
 import { Subject } from "rxjs";
 import { ConversationRunner } from "../conversation";
 import { MaxTurnsExceededError } from "../conversation/errors";
+import {
+  ScenarioEventType,
+  ScenarioRunStatus,
+  type ScenarioEvent,
+  type ScenarioRunStartedEvent,
+  type ScenarioRunFinishedEvent,
+  type ScenarioMessageSnapshotEvent,
+} from "../schemas";
 import {
   type ScenarioConfig,
   type ScenarioResult,
@@ -16,11 +18,6 @@ import {
 } from "../shared/types";
 import { formatScenarioResult } from "../shared/utils/logging";
 import { ScenarioTestingAgent } from "../testing-agent";
-
-enum ScenarioEvents {
-  SCENARIO_STARTED = "SCENARIO_STARTED",
-  SCENARIO_FINISHED = "SCENARIO_FINISHED",
-}
 
 /**
  * Represents a test scenario for evaluating AI agent behavior.
@@ -32,9 +29,8 @@ enum ScenarioEvents {
 export class Scenario {
   /** Lazily initialized testing agent instance */
   private _scenarioTestingAgent!: ScenarioTestingAgent;
-  private events$ = new Subject<
-    BaseEvent | CustomEvent | MessagesSnapshotEvent
-  >();
+  private events$ = new Subject<ScenarioEvent>();
+  private scenarioId = "scenario-" + randomUUID();
 
   /**
    * Creates a new scenario with the specified configuration.
@@ -79,10 +75,14 @@ export class Scenario {
     onMessages,
     onFinish,
   }: RunOptions): Promise<ScenarioResult> {
-    this.events$.next({
-      type: EventType.CUSTOM,
-      name: ScenarioEvents.SCENARIO_STARTED,
-    });
+    const scenarioRunId = "scenario-run-" + randomUUID();
+    const runStartedEvent: ScenarioRunStartedEvent = {
+      type: ScenarioEventType.RUN_STARTED,
+      scenarioId: this.scenarioId,
+      scenarioRunId,
+      timestamp: Date.now(),
+    };
+    this.events$.next(runStartedEvent);
 
     const testingAgent = this.scenarioTestingAgent;
 
@@ -100,37 +100,43 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     });
 
     runner.on("messages", (messages) => {
-      if (onMessages) {
-        onMessages(messages);
-      }
+      console.log("messages", messages);
+      onMessages?.(messages);
 
-      this.events$.next({
-        type: EventType.MESSAGES_SNAPSHOT,
+      const messageSnapshotEvent: ScenarioMessageSnapshotEvent = {
+        type: ScenarioEventType.MESSAGE_SNAPSHOT,
+        scenarioId: this.scenarioId,
+        scenarioRunId,
         messages: messages.map((message) => ({
           id: randomUUID(),
           role: message.role as "user" | "assistant",
           content: message.content as string,
         })),
-      });
+        timestamp: Date.now(),
+      };
+      this.events$.next(messageSnapshotEvent);
     });
 
     runner.on("finish", (result) => {
-      if (onFinish) {
-        onFinish({
-          ...result,
-          ...this.config,
-          ...testingAgent.getTestingAgentConfig(),
-          forceFinishTestMessage,
-        });
-      }
-
-      this.events$.next({
-        type: EventType.CUSTOM,
-        name: ScenarioEvents.SCENARIO_FINISHED,
-        value: {
-          success: result.verdict === Verdict.Success,
-        },
+      console.log("finish", result);
+      onFinish?.({
+        ...result,
+        ...this.config,
+        ...testingAgent.getTestingAgentConfig(),
+        forceFinishTestMessage,
       });
+
+      const runFinishedEvent: ScenarioRunFinishedEvent = {
+        type: ScenarioEventType.RUN_FINISHED,
+        scenarioId: this.scenarioId,
+        scenarioRunId,
+        status:
+          result.verdict === Verdict.Success
+            ? ScenarioRunStatus.SUCCESS
+            : ScenarioRunStatus.FAILED,
+        timestamp: Date.now(),
+      };
+      this.events$.next(runFinishedEvent);
     });
 
     try {
@@ -160,16 +166,41 @@ if you don't have enough information to make a verdict, say inconclusive with ma
   }
 
   private handleEvents() {
-    this.events$.subscribe((event) => {
-      const endpoint = process.env.AGUI_EVENTS_ENDPOINT;
-      if (endpoint) {
-        return fetch(endpoint, {
+    this.events$.subscribe(async (event) => {
+      console.log("event", event);
+      this.postEvent(event).catch((error) => {
+        console.error("Error posting event", error);
+      });
+    });
+  }
+
+  private async postEvent(event: ScenarioEvent) {
+    const endpoint = process.env.SCENARIO_EVENTS_ENDPOINT;
+    if (endpoint) {
+      try {
+        const response = await fetch(endpoint, {
           method: "POST",
           body: JSON.stringify(event),
+          headers: {
+            "Content-Type": "application/json",
+            "X-Auth-Token": process.env.LANGWATCH_API_KEY ?? "",
+          },
         });
-      } else {
-        return;
+        console.log("response status", response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("response", data);
+        } else {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          throw new Error(`HTTP error ${response.status}: ${errorText}`);
+        }
+      } catch (error) {
+        console.error("Error posting event", error);
+        throw error;
       }
-    });
+    }
+    return;
   }
 }
