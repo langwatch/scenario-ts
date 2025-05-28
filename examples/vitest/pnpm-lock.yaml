@@ -803,8 +803,8 @@ packages:
       isarray: 2.0.5
     dev: false
 
-  /fdir@6.4.4(picomatch@4.0.2):
-    resolution: {integrity: sha512-1NZP+GK4GfuAv3PqKvxQRDMjdSRZjnkq7KfhlNrCNNlZ0ygQFpebfrnfnq/W7fpUnAv9aGWmY1zKx7FYL3gwhg==}
+  /fdir@6.4.5(picomatch@4.0.2):
+    resolution: {integrity: sha512-4BG7puHpVsIYxZUbiUE3RqGloLaSSwzYie5jvasC4LWuBWzZawynvYouhjbQKw2JuIGYdm0DzIxl8iVidKlUEw==}
     peerDependencies:
       picomatch: ^3 || ^4
     peerDependenciesMeta:
@@ -1176,7 +1176,7 @@ packages:
     resolution: {integrity: sha512-tX5e7OM1HnYr2+a2C/4V0htOcSQcoSTH9KgJnVvNm5zm/cyEWKJ7j7YutsH9CxMdtOkkLFy2AHrMci9IM8IPZQ==}
     engines: {node: '>=12.0.0'}
     dependencies:
-      fdir: 6.4.4(picomatch@4.0.2)
+      fdir: 6.4.5(picomatch@4.0.2)
       picomatch: 4.0.2
     dev: true
 
@@ -1286,7 +1286,7 @@ packages:
         optional: true
     dependencies:
       esbuild: 0.25.5
-      fdir: 6.4.4(picomatch@4.0.2)
+      fdir: 6.4.5(picomatch@4.0.2)
       picomatch: 4.0.2
       postcss: 8.5.3
       rollup: 4.41.1
@@ -1394,7 +1394,7 @@ packages:
     dev: false
 
   file:../../langwatch-scenario-ts-0.1.0.tgz(react@19.1.0):
-    resolution: {integrity: sha512-8XNWLAlCGvxlfFifDt+1M6Lifi4rFZjHyXuLImP7WSRwg7GGKEyYzL4YS7tf1RKintjC6aC/v4BXDpHoNsi/RA==, tarball: file:../../langwatch-scenario-ts-0.1.0.tgz}
+    resolution: {integrity: sha512-AhqRi5vv7yu8+1TE9w1bAQEWtWHrbd2DCjYK/iQRJiBeBTft8RDMbH/UTKc42YaLSgZZErN46g0sALGjN9QZOw==, tarball: file:../../langwatch-scenario-ts-0.1.0.tgz}
     id: file:../../langwatch-scenario-ts-0.1.0.tgz
     name: '@langwatch/scenario-ts'
     version: 0.1.0

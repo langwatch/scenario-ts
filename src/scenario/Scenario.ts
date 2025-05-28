@@ -1,12 +1,12 @@
 import { randomUUID } from "crypto";
-import { Subject } from "rxjs";
+import { EMPTY, Subject } from "rxjs";
+import { concatMap, catchError, finalize } from "rxjs/operators";
 import { ConversationRunner } from "../conversation";
 import { MaxTurnsExceededError } from "../conversation/errors";
 import {
   ScenarioEventType,
   ScenarioRunStatus,
   type ScenarioEvent,
-  type ScenarioRunStartedEvent,
   type ScenarioRunFinishedEvent,
   type ScenarioMessageSnapshotEvent,
 } from "../schemas";
@@ -39,7 +39,21 @@ export class Scenario {
    *                 including description, strategy, and success/failure criteria
    */
   constructor(public readonly config: ScenarioConfig) {
-    this.handleEvents();
+    // Set up event processing pipeline
+    this.events$
+      .pipe(
+        // Process events in order
+        concatMap((event) => this.postEvent(event)),
+        // Handle errors without breaking the stream
+        catchError((error) => {
+          console.error("Error in event stream:", error);
+          return EMPTY;
+        }),
+        finalize(() => {
+          console.log("Event stream completed");
+        })
+      )
+      .subscribe();
   }
 
   /**
@@ -76,13 +90,43 @@ export class Scenario {
     onFinish,
   }: RunOptions): Promise<ScenarioResult> {
     const scenarioRunId = "scenario-run-" + randomUUID();
-    const runStartedEvent: ScenarioRunStartedEvent = {
+
+    // Set up event processing pipeline
+    const finishedPromise = new Promise<void>((resolve, reject) => {
+      this.events$
+        .pipe(
+          // Process events in order
+          concatMap(async (event) => {
+            await this.postEvent(event);
+            return event;
+          }),
+          // Handle errors without breaking the stream
+          catchError((error) => {
+            console.error("Error in event stream:", error);
+            return EMPTY;
+          })
+        )
+        .subscribe({
+          next: (event) => {
+            console.log(`[${event.type}] Event stream completed`);
+            if (event.type === ScenarioEventType.RUN_FINISHED) {
+              resolve();
+            }
+          },
+          error: (error) => {
+            console.error("Error in event stream:", error);
+            reject(error);
+          },
+        });
+    });
+
+    // Emit start event
+    this.events$.next({
       type: ScenarioEventType.RUN_STARTED,
       scenarioId: this.scenarioId,
       scenarioRunId,
       timestamp: Date.now(),
-    };
-    this.events$.next(runStartedEvent);
+    });
 
     const testingAgent = this.scenarioTestingAgent;
 
@@ -100,9 +144,6 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     });
 
     runner.on("messages", (messages) => {
-      console.log("messages", messages);
-      onMessages?.(messages);
-
       const messageSnapshotEvent: ScenarioMessageSnapshotEvent = {
         type: ScenarioEventType.MESSAGE_SNAPSHOT,
         scenarioId: this.scenarioId,
@@ -115,17 +156,10 @@ if you don't have enough information to make a verdict, say inconclusive with ma
         timestamp: Date.now(),
       };
       this.events$.next(messageSnapshotEvent);
+      onMessages?.(messages);
     });
 
     runner.on("finish", (result) => {
-      console.log("finish", result);
-      onFinish?.({
-        ...result,
-        ...this.config,
-        ...testingAgent.getTestingAgentConfig(),
-        forceFinishTestMessage,
-      });
-
       const runFinishedEvent: ScenarioRunFinishedEvent = {
         type: ScenarioEventType.RUN_FINISHED,
         scenarioId: this.scenarioId,
@@ -136,7 +170,15 @@ if you don't have enough information to make a verdict, say inconclusive with ma
             : ScenarioRunStatus.FAILED,
         timestamp: Date.now(),
       };
+
       this.events$.next(runFinishedEvent);
+
+      onFinish?.({
+        ...result,
+        ...this.config,
+        ...testingAgent.getTestingAgentConfig(),
+        forceFinishTestMessage,
+      });
     });
 
     try {
@@ -145,6 +187,9 @@ if you don't have enough information to make a verdict, say inconclusive with ma
       if (process.env.VERBOSE === "true") {
         formatScenarioResult(result);
       }
+
+      // Wait for the final event to be processed
+      await finishedPromise;
 
       return result;
     } catch (error) {
@@ -165,42 +210,52 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     }
   }
 
-  private handleEvents() {
-    this.events$.subscribe(async (event) => {
-      console.log("event", event);
-      this.postEvent(event).catch((error) => {
-        console.error("Error posting event", error);
-      });
-    });
-  }
-
   private async postEvent(event: ScenarioEvent) {
+    console.log(`[${event.type}] Posting event`);
     const endpoint = process.env.SCENARIO_EVENTS_ENDPOINT;
-    if (endpoint) {
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          body: JSON.stringify(event),
-          headers: {
-            "Content-Type": "application/json",
-            "X-Auth-Token": process.env.LANGWATCH_API_KEY ?? "",
-          },
-        });
-        console.log("response status", response.status);
+    if (!endpoint) {
+      console.warn(
+        "No SCENARIO_EVENTS_ENDPOINT configured, skipping event posting"
+      );
+      return;
+    }
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log("response", data);
-        } else {
-          const errorText = await response.text();
-          console.error("Error response:", errorText);
-          throw new Error(`HTTP error ${response.status}: ${errorText}`);
-        }
-      } catch (error) {
-        console.error("Error posting event", error);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: JSON.stringify(event),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Auth-Token": process.env.LANGWATCH_API_KEY ?? "",
+        },
+      });
+
+      // Log all response statuses for debugging
+      console.log(
+        `[${event.type}] Event POST response status: ${response.status}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[${event.type}] Event POST response:`, data);
+      } else {
+        const errorText = await response.text();
+        const error = new Error(`HTTP error ${response.status}: ${errorText}`);
+        console.error(`[${event.type}] Event POST failed:`, {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          event: event,
+        });
         throw error;
       }
+    } catch (error) {
+      console.error(`[${event.type}] Event POST error:`, {
+        error,
+        event,
+        endpoint,
+      });
+      throw error;
     }
-    return;
   }
 }
