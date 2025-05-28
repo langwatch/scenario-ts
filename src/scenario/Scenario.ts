@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { EMPTY, Subject } from "rxjs";
-import { concatMap, catchError, finalize } from "rxjs/operators";
+import { concatMap, catchError } from "rxjs/operators";
 import { ConversationRunner } from "../conversation";
 import { MaxTurnsExceededError } from "../conversation/errors";
 import {
@@ -39,21 +39,21 @@ export class Scenario {
    *                 including description, strategy, and success/failure criteria
    */
   constructor(public readonly config: ScenarioConfig) {
-    // Set up event processing pipeline
-    this.events$
-      .pipe(
-        // Process events in order
-        concatMap((event) => this.postEvent(event)),
-        // Handle errors without breaking the stream
-        catchError((error) => {
-          console.error("Error in event stream:", error);
-          return EMPTY;
-        }),
-        finalize(() => {
-          console.log("Event stream completed");
-        })
-      )
-      .subscribe();
+    // // Set up event processing pipeline
+    // this.events$
+    //   .pipe(
+    //     // Process events in order
+    //     concatMap((event) => this.postEvent(event)),
+    //     // Handle errors without breaking the stream
+    //     catchError((error) => {
+    //       console.error("Error in event stream:", error);
+    //       return EMPTY;
+    //     }),
+    //     finalize(() => {
+    //       console.log("Event stream completed");
+    //     })
+    //   )
+    //   .subscribe();
   }
 
   /**
@@ -188,11 +188,16 @@ if you don't have enough information to make a verdict, say inconclusive with ma
         formatScenarioResult(result);
       }
 
-      // Wait for the final event to be processed
-      await finishedPromise;
-
       return result;
     } catch (error) {
+      this.events$.next({
+        type: ScenarioEventType.RUN_FINISHED,
+        scenarioId: this.scenarioId,
+        scenarioRunId,
+        status: ScenarioRunStatus.CANCELLED,
+        timestamp: Date.now(),
+      });
+
       if (error instanceof MaxTurnsExceededError) {
         if (process.env.VERBOSE === "true") {
           console.log(
@@ -206,6 +211,8 @@ if you don't have enough information to make a verdict, say inconclusive with ma
 
       throw error;
     } finally {
+      // Wait for the final event to be processed
+      await finishedPromise;
       this.events$.complete();
     }
   }
