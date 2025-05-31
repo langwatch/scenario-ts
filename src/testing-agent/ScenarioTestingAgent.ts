@@ -77,14 +77,14 @@ export class ScenarioTestingAgent implements TestingAgent {
    * @returns The testing agent response
    */
   private processToolCalls(
-    toolCalls: Awaited<ReturnType<typeof this.generateText>>["toolCalls"],
+    toolCalls: Awaited<ReturnType<typeof this.generateText>>["toolCalls"] | undefined,
     options: {
       onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
     }
   ) {
     const { onFinishTest } = options;
     // Handle tool calls if present
-    if (toolCalls.length) {
+    if (toolCalls?.length) {
       const toolCall = toolCalls[0];
       const { schema } = ToolDefinitionProvider.getFinishTestTool();
       const args = schema.parse(toolCall.args);
