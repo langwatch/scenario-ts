@@ -13,10 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [
-          18.x, 
-          # 20.x
-        ]
+        node-version: [24.x]
 
     steps:
       - uses: actions/checkout@v3
@@ -30,7 +27,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run buildpack
-      # Remove pnpm-lock.yaml to force a clean install, 
+      # Remove pnpm-lock.yaml to force a clean install,
       # otherwise the tarball sha will be different and this will fail.
       - run: cd examples/vitest && rm -rf pnpm-lock.yaml && pnpm install --force
       - run: pnpm run lint
