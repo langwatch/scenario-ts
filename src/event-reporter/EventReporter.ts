@@ -23,7 +23,9 @@ export class EventReporter {
    * Logs success/failure but doesn't throw - event posting shouldn't break scenario execution.
    */
   async postEvent(event: ScenarioEvent): Promise<void> {
-    this.logger.debug(`[${event.type}] Posting event`);
+    this.logger.debug(`[${event.type}] Posting event`, {
+      event,
+    });
 
     if (!this.endpoint) {
       this.logger.warn(
