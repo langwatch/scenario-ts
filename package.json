@@ -17,7 +17,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "lint": "eslint .",
-    "examples:vitest:run": "export LANGWATCH_BATCH_ID=batch-run-$(uuidgen) && pnpm run buildpack && (cd examples/vitest && pnpm install) && pnpm -F vitest run test",
+    "examples:vitest:run": "export SCENARIO_BATCH_ID=batch-run-$(uuidgen) && pnpm run buildpack && (cd examples/vitest && pnpm install) && pnpm -F vitest run test",
     "prepublishOnly": "pnpm run build"
   },
   "publishConfig": {

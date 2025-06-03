@@ -7,9 +7,9 @@ import { randomUUID } from "crypto";
  * @returns A string representing the batch UUID.
  */
 export const getBatchId = (): string => {
-  if (!process.env.LANGWATCH_BATCH_ID) {
-    process.env.LANGWATCH_BATCH_ID = `batch-run-${randomUUID()}`;
+  if (!process.env.SCENARIO_BATCH_ID) {
+    process.env.SCENARIO_BATCH_ID = `batch-run-${randomUUID()}`;
   }
 
-  return process.env.LANGWATCH_BATCH_ID;
+  return process.env.SCENARIO_BATCH_ID;
 };
