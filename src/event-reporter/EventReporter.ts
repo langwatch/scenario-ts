@@ -1,3 +1,4 @@
+import { Logger } from "../logger";
 import type { ScenarioEvent } from "../schemas";
 
 /**
@@ -9,10 +10,12 @@ import type { ScenarioEvent } from "../schemas";
 export class EventReporter {
   private readonly endpoint: string | undefined;
   private readonly apiKey: string;
+  private readonly logger: Logger;
 
   constructor(options?: { endpoint?: string; apiKey?: string }) {
     this.endpoint = options?.endpoint ?? process.env.SCENARIO_EVENTS_ENDPOINT;
     this.apiKey = options?.apiKey ?? process.env.LANGWATCH_API_KEY ?? "";
+    this.logger = Logger.create("EventReporter");
   }
 
   /**
@@ -20,10 +23,10 @@ export class EventReporter {
    * Logs success/failure but doesn't throw - event posting shouldn't break scenario execution.
    */
   async postEvent(event: ScenarioEvent): Promise<void> {
-    console.log(`[${event.type}] Posting event`);
+    this.logger.debug(`[${event.type}] Posting event`);
 
     if (!this.endpoint) {
-      console.warn(
+      this.logger.warn(
         "No SCENARIO_EVENTS_ENDPOINT configured, skipping event posting"
       );
       return;
@@ -39,16 +42,16 @@ export class EventReporter {
         },
       });
 
-      console.log(
+      this.logger.debug(
         `[${event.type}] Event POST response status: ${response.status}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`[${event.type}] Event POST response:`, data);
+        this.logger.debug(`[${event.type}] Event POST response:`, data);
       } else {
         const errorText = await response.text();
-        console.error(`[${event.type}] Event POST failed:`, {
+        this.logger.error(`[${event.type}] Event POST failed:`, {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
@@ -57,7 +60,7 @@ export class EventReporter {
         // Don't throw - event posting shouldn't break scenario execution
       }
     } catch (error) {
-      console.error(`[${event.type}] Event POST error:`, {
+      this.logger.error(`[${event.type}] Event POST error:`, {
         error,
         event,
         endpoint: this.endpoint,

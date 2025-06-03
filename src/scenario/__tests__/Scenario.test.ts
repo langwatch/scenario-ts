@@ -13,6 +13,7 @@ const mockResult: ScenarioResult = {
   metCriteria: ["Success criterion"],
   unmetCriteria: [],
   triggeredFailures: [],
+  conversation: [],
 };
 
 // Mock dependencies before importing the actual modules
@@ -78,6 +79,11 @@ describe("Scenario", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     scenario = new Scenario(validConfig);
+    scenario["eventBus"] = {
+      publish: vi.fn(),
+      listen: vi.fn().mockResolvedValue(undefined),
+      drain: vi.fn().mockResolvedValue(undefined),
+    } as any;
     mockAgent = new MockAgent();
   });
 

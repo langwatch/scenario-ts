@@ -1,14 +1,13 @@
 import { EventEmitter } from "events";
 import { CoreMessage } from "ai";
 
-import { ConversationLogger } from "./ConversationLogger";
 import { MaxTurnsExceededError } from "./errors";
 import type {
   ScenarioResult,
   TestableAgent,
   TestingAgent,
-  TestingAgentResponse,
 } from "../shared/types";
+
 /**
  * ConversationRunner - Manages the conversation flow between a testable agent and a testing agent
  *
@@ -18,13 +17,10 @@ import type {
  * 2. Handling different types of testing agent responses
  * 3. Collecting conversation history for result analysis
  * 4. Measuring total conversation time
- * 5. Providing visual feedback in verbose mode
  */
 export class ConversationRunner {
   /** Stores the conversation history between agents */
   readonly messages: CoreMessage[] = [];
-  /** Logger */
-  private logger = new ConversationLogger();
   /** Event emitter */
   private emitter = new EventEmitter();
 
@@ -35,7 +31,7 @@ export class ConversationRunner {
    * @param config.agent - The agent being tested
    * @param config.testingAgent - The agent that simulates user behavior
    * @param config.maxTurns - Maximum number of conversation turns before ending
-   * @param config.verbose - Whether to display detailed logging during execution
+   * @param config.forceFinishTestMessage - Message to send when max turns reached
    */
   constructor(
     private config: {
@@ -78,12 +74,10 @@ export class ConversationRunner {
       //--------------------------------
       // Get the testing agent's response
       //--------------------------------
-      const response = await this.withUserSpinner(async () => {
-        return await this.config.testingAgent.invoke(this.messages, {
-          onFinishTest: (response) => {
-            result = response;
-          },
-        });
+      const response = await this.config.testingAgent.invoke(this.messages, {
+        onFinishTest: (response) => {
+          result = response;
+        },
       });
 
       // Record testing agent's message as "user" since it's simulating a user
@@ -103,9 +97,7 @@ export class ConversationRunner {
       //--------------------------------
       // Get the agent's response
       //--------------------------------
-      const { text } = await this.withAgentSpinner(async () => {
-        return await this.config.agent.invoke(response.text);
-      });
+      const { text } = await this.config.agent.invoke(response.text);
 
       // Record the agent's message
       this.addMessage({ role: "assistant", content: text });
@@ -118,9 +110,7 @@ export class ConversationRunner {
 
     // If we get here, we've hit max turns
     // We need to give the testing agent a final chance to make a final verdict
-    await this.withUserSpinner(async () => {
-      return await this.config.testingAgent.invoke(this.messages);
-    });
+    await this.config.testingAgent.invoke(this.messages);
 
     if (result) {
       const finalResult = {
@@ -132,34 +122,6 @@ export class ConversationRunner {
     }
 
     throw new MaxTurnsExceededError("Max turns exceeded");
-  }
-
-  private async withUserSpinner<T extends TestingAgentResponse>(
-    fn: () => Promise<T>
-  ): Promise<T> {
-    if (process.env.VERBOSE === "true") {
-      this.logger.startUserSpinner();
-      const result = await fn();
-      this.logger.stopUserSpinner();
-      this.logger.printUserMessage(result.text);
-      return result;
-    }
-
-    return fn();
-  }
-
-  private async withAgentSpinner<T extends TestingAgentResponse>(
-    fn: () => Promise<T>
-  ): Promise<T> {
-    if (process.env.VERBOSE === "true") {
-      this.logger.startAgentSpinner();
-      const result = await fn();
-      this.logger.stopAgentSpinner();
-      this.logger.printAgentMessage(result.text);
-      return result;
-    }
-
-    return fn();
   }
 
   private addMessage(message: CoreMessage) {

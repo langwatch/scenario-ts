@@ -45,7 +45,6 @@ export class ScenarioEventBus {
         )
         .subscribe({
           next: (event) => {
-            console.log(`[${event.type}] Event fully processed`);
             if (event.type === ScenarioEventType.RUN_FINISHED) {
               resolve();
             }
