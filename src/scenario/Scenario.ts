@@ -1,12 +1,12 @@
 import { randomUUID } from "crypto";
-import { EMPTY, Subject } from "rxjs";
-import { concatMap, catchError } from "rxjs/operators";
 import { ConversationRunner } from "../conversation";
 import { MaxTurnsExceededError } from "../conversation/errors";
+import { ScenarioEventBus } from "../event-bus";
+import { EventReporter } from "../event-reporter";
+import { getBatchId } from "../lib";
 import {
   ScenarioEventType,
   ScenarioRunStatus,
-  type ScenarioEvent,
   type ScenarioRunFinishedEvent,
   type ScenarioMessageSnapshotEvent,
 } from "../schemas";
@@ -19,6 +19,8 @@ import {
 import { formatScenarioResult } from "../shared/utils/logging";
 import { ScenarioTestingAgent } from "../testing-agent";
 
+const PROCESS_BATCH_ID = getBatchId();
+
 /**
  * Represents a test scenario for evaluating AI agent behavior.
  *
@@ -29,8 +31,9 @@ import { ScenarioTestingAgent } from "../testing-agent";
 export class Scenario {
   /** Lazily initialized testing agent instance */
   private _scenarioTestingAgent!: ScenarioTestingAgent;
-  private events$ = new Subject<ScenarioEvent>();
   private scenarioId = "scenario-" + randomUUID();
+  private eventReporter = new EventReporter();
+  private eventBus = new ScenarioEventBus(this.eventReporter);
 
   /**
    * Creates a new scenario with the specified configuration.
@@ -38,23 +41,7 @@ export class Scenario {
    * @param config - The configuration that defines the scenario's behavior,
    *                 including description, strategy, and success/failure criteria
    */
-  constructor(public readonly config: ScenarioConfig) {
-    // // Set up event processing pipeline
-    // this.events$
-    //   .pipe(
-    //     // Process events in order
-    //     concatMap((event) => this.postEvent(event)),
-    //     // Handle errors without breaking the stream
-    //     catchError((error) => {
-    //       console.error("Error in event stream:", error);
-    //       return EMPTY;
-    //     }),
-    //     finalize(() => {
-    //       console.log("Event stream completed");
-    //     })
-    //   )
-    //   .subscribe();
-  }
+  constructor(public readonly config: ScenarioConfig) {}
 
   /**
    * Gets the testing agent instance, creating it if it doesn't exist yet.
@@ -91,38 +78,13 @@ export class Scenario {
   }: RunOptions): Promise<ScenarioResult> {
     const scenarioRunId = "scenario-run-" + randomUUID();
 
-    // Set up event processing pipeline
-    const finishedPromise = new Promise<void>((resolve, reject) => {
-      this.events$
-        .pipe(
-          // Process events in order
-          concatMap(async (event) => {
-            await this.postEvent(event);
-            return event;
-          }),
-          // Handle errors without breaking the stream
-          catchError((error) => {
-            console.error("Error in event stream:", error);
-            return EMPTY;
-          })
-        )
-        .subscribe({
-          next: (event) => {
-            console.log(`[${event.type}] Event stream completed`);
-            if (event.type === ScenarioEventType.RUN_FINISHED) {
-              resolve();
-            }
-          },
-          error: (error) => {
-            console.error("Error in event stream:", error);
-            reject(error);
-          },
-        });
-    });
+    // Start the event bus processing pipeline
+    this.eventBus.listen();
 
     // Emit start event
-    this.events$.next({
+    this.eventBus.publish({
       type: ScenarioEventType.RUN_STARTED,
+      batchRunId: PROCESS_BATCH_ID,
       scenarioId: this.scenarioId,
       scenarioRunId,
       timestamp: Date.now(),
@@ -146,6 +108,7 @@ if you don't have enough information to make a verdict, say inconclusive with ma
     runner.on("messages", (messages) => {
       const messageSnapshotEvent: ScenarioMessageSnapshotEvent = {
         type: ScenarioEventType.MESSAGE_SNAPSHOT,
+        batchRunId: PROCESS_BATCH_ID,
         scenarioId: this.scenarioId,
         scenarioRunId,
         messages: messages.map((message) => ({
@@ -155,13 +118,16 @@ if you don't have enough information to make a verdict, say inconclusive with ma
         })),
         timestamp: Date.now(),
       };
-      this.events$.next(messageSnapshotEvent);
+
+      this.eventBus.publish(messageSnapshotEvent);
+
       onMessages?.(messages);
     });
 
     runner.on("finish", (result) => {
       const runFinishedEvent: ScenarioRunFinishedEvent = {
         type: ScenarioEventType.RUN_FINISHED,
+        batchRunId: PROCESS_BATCH_ID,
         scenarioId: this.scenarioId,
         scenarioRunId,
         status:
@@ -171,7 +137,7 @@ if you don't have enough information to make a verdict, say inconclusive with ma
         timestamp: Date.now(),
       };
 
-      this.events$.next(runFinishedEvent);
+      this.eventBus.publish(runFinishedEvent);
 
       onFinish?.({
         ...result,
@@ -190,8 +156,9 @@ if you don't have enough information to make a verdict, say inconclusive with ma
 
       return result;
     } catch (error) {
-      this.events$.next({
+      this.eventBus.publish({
         type: ScenarioEventType.RUN_FINISHED,
+        batchRunId: PROCESS_BATCH_ID,
         scenarioId: this.scenarioId,
         scenarioRunId,
         status: ScenarioRunStatus.CANCELLED,
@@ -211,58 +178,8 @@ if you don't have enough information to make a verdict, say inconclusive with ma
 
       throw error;
     } finally {
-      // Wait for the final event to be processed
-      await finishedPromise;
-      this.events$.complete();
-    }
-  }
-
-  private async postEvent(event: ScenarioEvent) {
-    console.log(`[${event.type}] Posting event`);
-    const endpoint = process.env.SCENARIO_EVENTS_ENDPOINT;
-    if (!endpoint) {
-      console.warn(
-        "No SCENARIO_EVENTS_ENDPOINT configured, skipping event posting"
-      );
-      return;
-    }
-
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        body: JSON.stringify(event),
-        headers: {
-          "Content-Type": "application/json",
-          "X-Auth-Token": process.env.LANGWATCH_API_KEY ?? "",
-        },
-      });
-
-      // Log all response statuses for debugging
-      console.log(
-        `[${event.type}] Event POST response status: ${response.status}`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[${event.type}] Event POST response:`, data);
-      } else {
-        const errorText = await response.text();
-        const error = new Error(`HTTP error ${response.status}: ${errorText}`);
-        console.error(`[${event.type}] Event POST failed:`, {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          event: event,
-        });
-        throw error;
-      }
-    } catch (error) {
-      console.error(`[${event.type}] Event POST error:`, {
-        error,
-        event,
-        endpoint,
-      });
-      throw error;
+      // Wait for the final event to be processed and drain the event bus
+      await this.eventBus.drain();
     }
   }
 }

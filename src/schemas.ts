@@ -28,10 +28,50 @@ const baseEventSchema = z.object({
   rawEvent: z.any().optional(),
 });
 
+/**
+ * This is the process run id schema
+ */
+const batchRunIdSchema = z.string().refine(
+  (val) => {
+    const uuid = val.replace("batch-run-", "");
+    return (
+      val.startsWith("batch-run-") && z.string().uuid().safeParse(uuid).success
+    );
+  },
+  {
+    message: "ID must start with 'batch-run-' followed by a valid UUID",
+  }
+);
+
+const scenarioRunIdSchema = z.string().refine(
+  (val) => {
+    const uuid = val.replace("scenario-run-", "");
+    return (
+      val.startsWith("scenario-run-") &&
+      z.string().uuid().safeParse(uuid).success
+    );
+  },
+  {
+    message: "ID must start with 'scenario-run-' followed by a valid UUID",
+  }
+);
+
+const scenarioIdSchema = z
+  .string()
+  .refine(
+    (val) =>
+      val.startsWith("scenario-") &&
+      z.string().uuid().safeParse(val.replace("scenario-", "")).success,
+    {
+      message: "ID must start with 'scenario-' followed by a valid UUID",
+    }
+  );
+
 // Base scenario event schema with common fields
 const baseScenarioEventSchema = baseEventSchema.extend({
-  scenarioId: z.string().uuid().startsWith("scenario-"),
-  scenarioRunId: z.string().uuid().startsWith("scenario-run-"),
+  batchRunId: batchRunIdSchema,
+  scenarioId: scenarioIdSchema,
+  scenarioRunId: scenarioRunIdSchema,
 });
 
 // Scenario Run Started Event
@@ -83,3 +123,23 @@ export type ScenarioMessageSnapshotEvent = z.infer<
   typeof scenarioMessageSnapshotSchema
 >;
 export type ScenarioEvent = z.infer<typeof scenarioEventSchema>;
+
+// Define response schemas
+const successSchema = z.object({ success: z.boolean() });
+const errorSchema = z.object({ error: z.string() });
+const stateSchema = z.object({
+  state: z.object({
+    messages: z.array(z.any()),
+    status: z.string(),
+  }),
+});
+const runsSchema = z.object({ runs: z.array(z.string()) });
+const eventsSchema = z.object({ events: z.array(scenarioEventSchema) });
+
+export const responseSchemas = {
+  success: successSchema,
+  error: errorSchema,
+  state: stateSchema,
+  runs: runsSchema,
+  events: eventsSchema,
+};
