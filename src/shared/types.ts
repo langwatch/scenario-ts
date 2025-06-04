@@ -8,7 +8,6 @@ export enum Verdict {
   Success = "success",
   Failure = "failure",
   Inconclusive = "inconclusive",
-  Error = "error",
 }
 
 /**
