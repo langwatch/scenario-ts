@@ -1,1 +1,1 @@
-export * from "./scenario-core";
+export * from "./scenario";
