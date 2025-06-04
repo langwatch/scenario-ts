@@ -4,7 +4,7 @@
 // This is a common pattern in Vitest/Jest testing to ensure that mocks
 // take effect before the actual module code is evaluated.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Scenario } from "../scenario";
+import { Scenario } from "../scenario-core";
 
 // Prepare mock result
 const mockResult: ScenarioResult = {
