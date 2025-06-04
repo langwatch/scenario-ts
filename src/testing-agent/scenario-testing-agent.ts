@@ -1,8 +1,8 @@
 import { CoreMessage, generateText, LanguageModel } from "ai";
 import { modelRegistry, type ModelConfig } from "../model-registry";
 import { ToolDefinitionProvider } from "./tools";
+import { Verdict } from "../shared/enums";
 import {
-  Verdict,
   ScenarioConfig,
   TestingAgent,
   ScenarioResult,

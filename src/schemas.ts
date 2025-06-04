@@ -4,22 +4,7 @@
  */
 import { EventType, MessagesSnapshotEventSchema } from "@ag-ui/core";
 import { z } from "zod";
-
-// Scenario event type enum
-export enum ScenarioEventType {
-  RUN_STARTED = "SCENARIO_RUN_STARTED",
-  RUN_FINISHED = "SCENARIO_RUN_FINISHED",
-  MESSAGE_SNAPSHOT = "SCENARIO_MESSAGE_SNAPSHOT",
-}
-
-export enum ScenarioRunStatus {
-  SUCCESS = "SUCCESS",
-  ERROR = "ERROR",
-  CANCELLED = "CANCELLED",
-  IN_PROGRESS = "IN_PROGRESS",
-  PENDING = "PENDING",
-  FAILED = "FAILED",
-}
+import { Verdict, ScenarioEventType, ScenarioRunStatus } from "./shared/enums";
 
 // AG-UI Base Event Schema
 const baseEventSchema = z.object({
@@ -85,19 +70,19 @@ export const scenarioRunStartedSchema = baseScenarioEventSchema.extend({
   //   }),
 });
 
+// Schema for scenario result, matching the provided Python dataclass structure
+const scenarioResultsSchema = z.object({
+  verdict: z.nativeEnum(Verdict),
+  reasoning: z.string().optional(),
+  metCriteria: z.array(z.string()),
+  unmetCriteria: z.array(z.string()),
+});
+
 // Scenario Run Finished Event
-// TODO: Consider error, metrics
 export const scenarioRunFinishedSchema = baseScenarioEventSchema.extend({
   type: z.literal(ScenarioEventType.RUN_FINISHED),
   status: z.nativeEnum(ScenarioRunStatus),
-  //   error: z
-  //     .object({
-  //       message: z.string(),
-  //       code: z.string().optional(),
-  //       stack: z.string().optional(),
-  //     })
-  //     .optional(),
-  //   metrics: z.record(z.number()).optional(),
+  results: scenarioResultsSchema,
 });
 
 // Scenario Message Snapshot Event
@@ -135,6 +120,16 @@ const stateSchema = z.object({
 });
 const runsSchema = z.object({ runs: z.array(z.string()) });
 const eventsSchema = z.object({ events: z.array(scenarioEventSchema) });
+const scenarioBatchSchema = z.object({
+  batchRunId: z.string(),
+  scenarioCount: z.number(),
+  successRate: z.number(),
+  lastRunAt: z.date(),
+});
+
+const batchesSchema = z.object({
+  batches: z.array(scenarioBatchSchema),
+});
 
 export const responseSchemas = {
   success: successSchema,
@@ -142,4 +137,5 @@ export const responseSchemas = {
   state: stateSchema,
   runs: runsSchema,
   events: eventsSchema,
+  batches: batchesSchema,
 };

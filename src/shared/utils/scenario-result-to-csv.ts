@@ -1,10 +1,6 @@
 import { stringify } from "csv-stringify/sync";
-import {
-  ScenarioConfig,
-  TestingAgentConfig,
-  ScenarioResult,
-  Verdict,
-} from "../types";
+import { Verdict } from "../enums";
+import { ScenarioConfig, TestingAgentConfig, ScenarioResult } from "../types";
 
 /**
  * Converts a scenario result to CSV format for reporting and analysis

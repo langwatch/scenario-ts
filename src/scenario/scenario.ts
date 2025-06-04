@@ -5,16 +5,14 @@ import { ScenarioEventBus } from "../event-bus";
 import { EventReporter } from "../event-reporter";
 import { getBatchId } from "../lib";
 import {
-  ScenarioEventType,
-  ScenarioRunStatus,
   type ScenarioRunFinishedEvent,
   type ScenarioMessageSnapshotEvent,
 } from "../schemas";
+import { ScenarioEventType, ScenarioRunStatus, Verdict } from "../shared/enums";
 import {
   type ScenarioConfig,
   type ScenarioResult,
   type RunOptions,
-  Verdict,
 } from "../shared/types";
 import { formatScenarioResult } from "../shared/utils/logging";
 import { ScenarioTestingAgent } from "../testing-agent";
@@ -134,6 +132,12 @@ if you don't have enough information to make a verdict, say inconclusive with ma
           result.verdict === Verdict.Success
             ? ScenarioRunStatus.SUCCESS
             : ScenarioRunStatus.FAILED,
+        results: {
+          verdict: result.verdict,
+          metCriteria: result.metCriteria,
+          unmetCriteria: result.unmetCriteria,
+          reasoning: result.reasoning ?? "",
+        },
         timestamp: Date.now(),
       };
 
@@ -162,6 +166,12 @@ if you don't have enough information to make a verdict, say inconclusive with ma
         scenarioId: this.scenarioId,
         scenarioRunId,
         status: ScenarioRunStatus.CANCELLED,
+        results: {
+          verdict: Verdict.Inconclusive,
+          metCriteria: [],
+          unmetCriteria: [],
+          reasoning: "Scenario cancelled",
+        },
         timestamp: Date.now(),
       });
 
