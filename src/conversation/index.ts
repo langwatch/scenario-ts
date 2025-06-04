@@ -1,1 +1,1 @@
-export * from "./ConversationRunner";
+export * from "./conversation-runner";

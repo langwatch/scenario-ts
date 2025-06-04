@@ -8,7 +8,7 @@ import * as fs from "fs";
 import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { CoreMessage, generateText } from "ai";
 import { describe, it, expect } from "vitest";
-import { modelRegistry } from "../../src/modelRegistry";
+import { modelRegistry } from "../../src/model-registry";
 import { resultToCSV } from "../../src/shared/utils/scenario-result-to-csv";
 
 describe("Vegetarian Recipe Example", () => {

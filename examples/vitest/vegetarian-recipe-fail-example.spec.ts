@@ -8,7 +8,7 @@ import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { CoreMessage, generateText } from "ai";
 import { describe, it, expect } from "vitest";
 
-import { modelRegistry } from "../../src/modelRegistry";
+import { modelRegistry } from "../../src/model-registry";
 
 describe("Vegetarian Recipe Example", () => {
   it("tests vegetarian recipe agent capabilities", async () => {

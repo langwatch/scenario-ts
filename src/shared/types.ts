@@ -1,5 +1,5 @@
 import { CoreMessage } from "ai";
-import { ModelConfig } from "../modelRegistry";
+import { ModelConfig } from "../model-registry";
 
 /**
  * Verdict enum represents the possible outcomes of a test scenario

@@ -1,1 +1,1 @@
-export * from "./EventReporter";
+export * from "./event-reporter";

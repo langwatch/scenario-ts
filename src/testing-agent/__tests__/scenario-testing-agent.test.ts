@@ -4,11 +4,11 @@
 // This is a common pattern in Vitest/Jest testing to ensure that mocks
 // take effect before the actual module code is evaluated.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ScenarioTestingAgent } from "../ScenarioTestingAgent";
+import { ScenarioTestingAgent } from "../scenario-testing-agent";
 import { ScenarioConfig, Verdict } from "../../shared/types";
 
 // Mock dependencies directly with vi.mock
-vi.mock("../../modelRegistry", () => ({
+vi.mock("../../model-registry", () => ({
   modelRegistry: {
     languageModel: vi.fn(() => ({})),
   },
@@ -39,7 +39,7 @@ vi.mock("../tools", () => ({
 
 // Import mocks after they've been defined
 import { CoreMessage, generateText } from "ai";
-import { ModelConfig, modelRegistry } from "../../modelRegistry";
+import { ModelConfig, modelRegistry } from "../../model-registry";
 
 describe("ScenarioTestingAgent", () => {
   // Sample valid config for testing

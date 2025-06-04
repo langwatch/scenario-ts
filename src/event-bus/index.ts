@@ -1,1 +1,1 @@
-export * from "./ScenarioEventBus";
+export * from "./scenario-event-bus";

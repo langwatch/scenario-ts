@@ -1,5 +1,5 @@
 import { CoreMessage, generateText, LanguageModel } from "ai";
-import { modelRegistry, type ModelConfig } from "../modelRegistry";
+import { modelRegistry, type ModelConfig } from "../model-registry";
 import { ToolDefinitionProvider } from "./tools";
 import {
   Verdict,
@@ -85,7 +85,9 @@ export class ScenarioTestingAgent implements TestingAgent {
    * @returns The testing agent response
    */
   private processToolCalls(
-    toolCalls: Awaited<ReturnType<typeof this.generateText>>["toolCalls"] | undefined,
+    toolCalls:
+      | Awaited<ReturnType<typeof this.generateText>>["toolCalls"]
+      | undefined,
     options: {
       onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
     } = {}
