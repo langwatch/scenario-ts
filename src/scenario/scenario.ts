@@ -5,16 +5,14 @@ import { ScenarioEventBus } from "../event-bus";
 import { EventReporter } from "../event-reporter";
 import { getBatchId } from "../lib";
 import {
-  ScenarioEventType,
-  ScenarioRunStatus,
   type ScenarioRunFinishedEvent,
   type ScenarioMessageSnapshotEvent,
 } from "../schemas";
+import { ScenarioEventType, ScenarioRunStatus, Verdict } from "../shared/enums";
 import {
   type ScenarioConfig,
   type ScenarioResult,
   type RunOptions,
-  Verdict,
 } from "../shared/types";
 import { formatScenarioResult } from "../shared/utils/logging";
 import { ScenarioTestingAgent } from "../testing-agent";

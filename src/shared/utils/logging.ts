@@ -1,10 +1,8 @@
 import chalk from "chalk";
 
 // Need to import these types for the type guards
-import {
-  ScenarioResult,
-  Verdict,
-} from "../types";
+import { Verdict } from "../enums";
+import { ScenarioResult } from "../types";
 
 /**
  * Formats and prints a scenario test result in a visually appealing way
@@ -115,8 +113,5 @@ function printFooter() {
 function isFinishTestResponse(
   result: ScenarioResult
 ): result is ScenarioResult {
-  return (
-    "verdict" in result
-  );
+  return "verdict" in result;
 }
-

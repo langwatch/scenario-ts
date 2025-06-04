@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-import { Verdict } from "../shared/types";
+import { Verdict } from "../shared/enums";
 /**
  * Provides tool definitions for the testing agent to use during scenario evaluation.
  *

@@ -4,23 +4,7 @@
  */
 import { EventType, MessagesSnapshotEventSchema } from "@ag-ui/core";
 import { z } from "zod";
-import { Verdict } from "./shared/types";
-
-// Scenario event type enum
-export enum ScenarioEventType {
-  RUN_STARTED = "SCENARIO_RUN_STARTED",
-  RUN_FINISHED = "SCENARIO_RUN_FINISHED",
-  MESSAGE_SNAPSHOT = "SCENARIO_MESSAGE_SNAPSHOT",
-}
-
-export enum ScenarioRunStatus {
-  SUCCESS = "SUCCESS",
-  ERROR = "ERROR",
-  CANCELLED = "CANCELLED",
-  IN_PROGRESS = "IN_PROGRESS",
-  PENDING = "PENDING",
-  FAILED = "FAILED",
-}
+import { Verdict, ScenarioEventType, ScenarioRunStatus } from "./shared/enums";
 
 // AG-UI Base Event Schema
 const baseEventSchema = z.object({
@@ -136,6 +120,16 @@ const stateSchema = z.object({
 });
 const runsSchema = z.object({ runs: z.array(z.string()) });
 const eventsSchema = z.object({ events: z.array(scenarioEventSchema) });
+const scenarioBatchSchema = z.object({
+  batchRunId: z.string(),
+  scenarioCount: z.number(),
+  successRate: z.number(),
+  lastRunAt: z.date(),
+});
+
+const batchesSchema = z.object({
+  batches: z.array(scenarioBatchSchema),
+});
 
 export const responseSchemas = {
   success: successSchema,
@@ -143,4 +137,5 @@ export const responseSchemas = {
   state: stateSchema,
   runs: runsSchema,
   events: eventsSchema,
+  batches: batchesSchema,
 };
