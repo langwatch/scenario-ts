@@ -4,7 +4,7 @@
 // This is a common pattern in Vitest/Jest testing to ensure that mocks
 // take effect before the actual module code is evaluated.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Scenario } from "../Scenario";
+import { Scenario } from "../scenario";
 
 // Prepare mock result
 const mockResult: ScenarioResult = {
@@ -13,6 +13,7 @@ const mockResult: ScenarioResult = {
   metCriteria: ["Success criterion"],
   unmetCriteria: [],
   triggeredFailures: [],
+  conversation: [],
 };
 
 // Mock dependencies before importing the actual modules
@@ -28,6 +29,7 @@ const mockRunFn = vi.fn().mockResolvedValue(mockResult);
 // Create a mock instance
 const mockConversationRunnerInstance = {
   run: mockRunFn,
+  on: vi.fn(),
 };
 
 // Mock the conversation module
@@ -77,6 +79,12 @@ describe("Scenario", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     scenario = new Scenario(validConfig);
+    scenario["eventBus"] = {
+      publish: vi.fn(),
+      listen: vi.fn().mockResolvedValue(undefined),
+      drain: vi.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
     mockAgent = new MockAgent();
   });
 

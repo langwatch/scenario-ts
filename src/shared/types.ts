@@ -1,4 +1,5 @@
 import { CoreMessage } from "ai";
+import { ModelConfig } from "../model-registry";
 
 /**
  * Verdict enum represents the possible outcomes of a test scenario
@@ -43,6 +44,14 @@ export interface ScenarioConfig {
 export interface RunOptions {
   agent: TestableAgent;
   maxTurns?: number;
+  onMessages?: (messages: CoreMessage[]) => void;
+  onFinish?: (
+    result: ScenarioResult &
+      ScenarioConfig &
+      TestingAgentConfig & {
+        forceFinishTestMessage: string;
+      }
+  ) => void;
 }
 
 export type ScenarioResult = {
@@ -56,4 +65,8 @@ export type ScenarioResult = {
 
 export interface TestingAgentResponse {
   text: string;
+}
+
+export interface TestingAgentConfig extends ModelConfig {
+  systemPrompt: string;
 }

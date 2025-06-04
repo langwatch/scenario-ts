@@ -1,1 +1,1 @@
-export * from "./ScenarioTestingAgent";
+export * from "./scenario-testing-agent";

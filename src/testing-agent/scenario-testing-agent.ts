@@ -1,11 +1,12 @@
 import { CoreMessage, generateText, LanguageModel } from "ai";
-import { modelRegistry, type ModelConfig } from "../modelRegistry";
+import { modelRegistry, type ModelConfig } from "../model-registry";
 import { ToolDefinitionProvider } from "./tools";
 import {
   Verdict,
   ScenarioConfig,
   TestingAgent,
   ScenarioResult,
+  TestingAgentConfig,
 } from "../shared/types";
 
 // Default model configuration that can be overridden
@@ -23,7 +24,7 @@ interface TestingAgentOptions {
 // Main agent class, now more focused on its core responsibility
 export class ScenarioTestingAgent implements TestingAgent {
   private chatModel: LanguageModel;
-  private systemPrompt: string;
+  readonly systemPrompt: string;
   private modelConfig: ModelConfig;
 
   constructor(
@@ -47,11 +48,18 @@ export class ScenarioTestingAgent implements TestingAgent {
     this.systemPrompt = this.buildSystemPrompt();
   }
 
+  getTestingAgentConfig(): TestingAgentConfig {
+    return {
+      systemPrompt: this.systemPrompt,
+      ...this.modelConfig,
+    };
+  }
+
   async invoke(
     messages: CoreMessage[],
     options: {
       onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
-    }
+    } = {}
   ) {
     const { onFinishTest } = options;
     const conversation: CoreMessage[] = [
@@ -77,10 +85,12 @@ export class ScenarioTestingAgent implements TestingAgent {
    * @returns The testing agent response
    */
   private processToolCalls(
-    toolCalls: Awaited<ReturnType<typeof this.generateText>>["toolCalls"] | undefined,
+    toolCalls:
+      | Awaited<ReturnType<typeof this.generateText>>["toolCalls"]
+      | undefined,
     options: {
       onFinishTest?: (results: Omit<ScenarioResult, "conversation">) => void;
-    }
+    } = {}
   ) {
     const { onFinishTest } = options;
     // Handle tool calls if present
