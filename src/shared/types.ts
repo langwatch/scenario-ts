@@ -26,6 +26,7 @@ export interface TestingAgent {
  * Scenario configuration and run options
  */
 export interface ScenarioConfig {
+  id?: string;
   description: string;
   strategy: string;
   successCriteria: string[];

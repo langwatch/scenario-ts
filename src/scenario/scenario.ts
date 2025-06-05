@@ -27,9 +27,8 @@ const PROCESS_BATCH_ID = getBatchId();
  * that simulates user behavior according to a defined strategy.
  */
 export class Scenario {
-  /** Lazily initialized testing agent instance */
   private _scenarioTestingAgent!: ScenarioTestingAgent;
-  private scenarioId = "scenario-" + randomUUID();
+  private scenarioId: string;
   private eventReporter = new EventReporter();
   private eventBus = new ScenarioEventBus(this.eventReporter);
 
@@ -39,7 +38,9 @@ export class Scenario {
    * @param config - The configuration that defines the scenario's behavior,
    *                 including description, strategy, and success/failure criteria
    */
-  constructor(public readonly config: ScenarioConfig) {}
+  constructor(public readonly config: ScenarioConfig) {
+    this.scenarioId = config.id ?? "scenario-" + randomUUID();
+  }
 
   /**
    * Gets the testing agent instance, creating it if it doesn't exist yet.

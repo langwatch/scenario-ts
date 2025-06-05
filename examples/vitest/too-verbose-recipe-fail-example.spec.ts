@@ -8,6 +8,7 @@ import * as fs from "fs";
 import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { CoreMessage, generateText } from "ai";
 import { describe, it, expect } from "vitest";
+import { kebabCase } from "../../src/lib";
 import { modelRegistry } from "../../src/model-registry";
 import { resultToCSV } from "../../src/shared/utils/scenario-result-to-csv";
 
@@ -15,6 +16,7 @@ describe("Vegetarian Recipe Example", () => {
   it("tests vegetarian recipe agent capabilities", async () => {
     // Create a scenario to test the vegetarian recipe agent
     const scenario = new Scenario({
+      id: kebabCase(expect.getState().currentTestName),
       description: "User is looking for a dinner idea",
       strategy: "Ask for a vegetarian recipe and evaluate the response",
       successCriteria: [
