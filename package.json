@@ -1,6 +1,6 @@
 {
   "name": "@langwatch/scenario-ts",
-  "version": "0.1.0",
+  "version": "0.2.0-prerelease.0",
   "description": "A TypeScript library for testing AI agents using scenarios",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -17,7 +17,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "lint": "eslint .",
-    "examples:vitest:run": "export SCENARIO_BATCH_ID=batch-run-$(uuidgen) && pnpm run buildpack && (cd examples/vitest && pnpm install) && pnpm -F vitest run test",
+    "examples:vitest:run": "export SCENARIO_BATCH_ID=scenariobatch_$(uuidgen) && pnpm run buildpack && (cd examples/vitest && pnpm install) && pnpm -F vitest run test",
     "prepublishOnly": "pnpm run build"
   },
   "publishConfig": {
@@ -34,7 +34,7 @@
   "author": "LangWatch",
   "license": "MIT",
   "engines": {
-    "node": ">=18",
+    "node": ">=20",
     "pnpm": ">=8"
   },
   "packageManager": "pnpm@8.15.4",
@@ -44,9 +44,9 @@
     "ai": ">=4.0.0",
     "chalk": "4.1.2",
     "csv-stringify": "6.5.2",
-    "dotenv": "16.5.0",
     "rxjs": "7.8.2",
     "stringify": "5.2.0",
+    "xksuid": "0.0.4",
     "zod": "3.24.4"
   },
   "devDependencies": {

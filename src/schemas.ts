@@ -1,9 +1,6 @@
-/**
- * Scenario event schemas
- * Extends the AG-UI base event schema to add scenario-specific fields.
- */
 import { EventType, MessagesSnapshotEventSchema } from "@ag-ui/core";
 import { z } from "zod";
+import { safeParseXKsuid } from "./lib";
 
 // Scenario event type enum
 export enum ScenarioEventType {
@@ -28,44 +25,38 @@ const baseEventSchema = z.object({
   rawEvent: z.any().optional(),
 });
 
-/**
- * This is the process run id schema
- */
+// This is the scenario batch id schema
 const batchRunIdSchema = z.string().refine(
   (val) => {
-    const uuid = val.replace("batch-run-", "");
-    return (
-      val.startsWith("batch-run-") && z.string().uuid().safeParse(uuid).success
-    );
+    const [resource, id] = val.split("_");
+    return resource === "scenariobatch" && safeParseXKsuid(id);
   },
   {
-    message: "ID must start with 'batch-run-' followed by a valid UUID",
+    message: "ID must be a valid ksuid, with the resource 'scenariobatch_'",
   }
 );
 
+// This is the scenario run id schema
 const scenarioRunIdSchema = z.string().refine(
   (val) => {
-    const uuid = val.replace("scenario-run-", "");
-    return (
-      val.startsWith("scenario-run-") &&
-      z.string().uuid().safeParse(uuid).success
-    );
+    const [resource, id] = val.split("_");
+    return resource === "scenariorun" && safeParseXKsuid(id);
   },
   {
-    message: "ID must start with 'scenario-run-' followed by a valid UUID",
+    message: "ID must be a valid ksuid, with the resource 'scenariorun_'",
   }
 );
 
-const scenarioIdSchema = z
-  .string()
-  .refine(
-    (val) =>
-      val.startsWith("scenario-") &&
-      z.string().uuid().safeParse(val.replace("scenario-", "")).success,
-    {
-      message: "ID must start with 'scenario-' followed by a valid UUID",
-    }
-  );
+// This is the scenario id schema
+const scenarioIdSchema = z.string().refine(
+  (val) => {
+    const [resource, id] = val.split("_");
+    return resource === "scenario" && safeParseXKsuid(id);
+  },
+  {
+    message: "ID must be a valid ksuid, with the resource 'scenario_'",
+  }
+);
 
 // Base scenario event schema with common fields
 const baseScenarioEventSchema = baseEventSchema.extend({
