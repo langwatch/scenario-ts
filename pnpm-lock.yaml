@@ -29,6 +29,9 @@ dependencies:
   stringify:
     specifier: 5.2.0
     version: 5.2.0
+  xksuid:
+    specifier: 0.0.4
+    version: 0.0.4
   zod:
     specifier: 3.24.4
     version: 3.24.4
@@ -6029,6 +6032,10 @@ packages:
       imurmurhash: 0.1.4
       signal-exit: 3.0.7
     dev: true
+
+  /xksuid@0.0.4:
+    resolution: {integrity: sha512-uVWuWtTLV0c5glVnRUFVtAT0At/a438v4KCqhmKpkGiU1JXMzmrigEtKzNaQ3D4yHgDbEFl7C5EG688b2FARqA==}
+    dev: false
 
   /xml-char-classes@1.0.0:
     resolution: {integrity: sha512-dTaaRwm4ccF8UF15/PLT3pNNlZP04qko/FUcr0QBppYLk8+J7xA9gg2vI2X4Kr1PcJAVxwI9NdADex29FX2QVQ==}
