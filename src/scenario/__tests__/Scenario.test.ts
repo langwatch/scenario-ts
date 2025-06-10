@@ -48,13 +48,13 @@ process.env.OPENAI_API_KEY = "test";
 
 // Import modules after mocking them
 import { ConversationRunner } from "../../conversation";
-import {
+import type {
   ScenarioConfig,
-  Verdict,
   ScenarioResult,
   TestableAgent,
   RunOptions,
 } from "../../shared/types";
+import { Verdict } from "../../shared/enums";
 import { formatScenarioResult } from "../../shared/utils/logging";
 import { ScenarioTestingAgent } from "../../testing-agent";
 

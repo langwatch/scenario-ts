@@ -76,16 +76,24 @@ export class Scenario {
     onFinish,
   }: RunOptions): Promise<ScenarioResult> {
     const scenarioRunId = "scenario-run-" + randomUUID();
+    const eventFields = {
+      batchRunId: PROCESS_BATCH_ID,
+      scenarioId: this.scenarioId,
+      scenarioSetId: this.config.setId,
+      scenarioRunId,
+    };
 
     // Start the event bus processing pipeline
     this.eventBus.listen();
 
     // Emit start event
     this.eventBus.publish({
+      ...eventFields,
       type: ScenarioEventType.RUN_STARTED,
-      batchRunId: PROCESS_BATCH_ID,
-      scenarioId: this.scenarioId,
-      scenarioRunId,
+      metadata: {
+        name: this.config.name ?? "Unnamed Scenario",
+        description: this.config.description ?? "No description provided",
+      },
       timestamp: Date.now(),
     });
 
@@ -106,10 +114,8 @@ if you don't have enough information to make a verdict, say inconclusive with ma
 
     runner.on("messages", (messages) => {
       const messageSnapshotEvent: ScenarioMessageSnapshotEvent = {
+        ...eventFields,
         type: ScenarioEventType.MESSAGE_SNAPSHOT,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
         messages: messages.map((message) => ({
           id: randomUUID(),
           role: message.role as "user" | "assistant",
@@ -125,10 +131,8 @@ if you don't have enough information to make a verdict, say inconclusive with ma
 
     runner.on("finish", (result) => {
       const runFinishedEvent: ScenarioRunFinishedEvent = {
+        ...eventFields,
         type: ScenarioEventType.RUN_FINISHED,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
         status:
           result.verdict === Verdict.Success
             ? ScenarioRunStatus.SUCCESS
@@ -162,10 +166,8 @@ if you don't have enough information to make a verdict, say inconclusive with ma
       return result;
     } catch (error) {
       this.eventBus.publish({
+        ...eventFields,
         type: ScenarioEventType.RUN_FINISHED,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
         status: ScenarioRunStatus.CANCELLED,
         results: {
           verdict: Verdict.Inconclusive,
@@ -173,7 +175,6 @@ if you don't have enough information to make a verdict, say inconclusive with ma
           unmetCriteria: [],
           reasoning: "Scenario cancelled",
         },
-        timestamp: Date.now(),
       });
 
       if (error instanceof MaxTurnsExceededError) {

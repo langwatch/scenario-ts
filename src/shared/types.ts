@@ -27,7 +27,9 @@ export interface TestingAgent {
  */
 export interface ScenarioConfig {
   id?: string;
+  name?: string;
   description: string;
+  setId?: string;
   strategy: string;
   successCriteria: string[];
   failureCriteria: string[];

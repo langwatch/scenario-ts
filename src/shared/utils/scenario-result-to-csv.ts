@@ -9,11 +9,13 @@ import { ScenarioConfig, TestingAgentConfig, ScenarioResult } from "../types";
  * @returns Formatted CSV string with headers and properly escaped values
  */
 export function resultToCSV(
-  result: ScenarioResult &
-    ScenarioConfig &
-    TestingAgentConfig & {
-      forceFinishTestMessage: string;
-    }
+  result: Partial<
+    ScenarioResult &
+      ScenarioConfig &
+      TestingAgentConfig & {
+        forceFinishTestMessage: string;
+      }
+  >
 ): string {
   // Create a record with all relevant test data
   const records = [
@@ -25,10 +27,10 @@ export function resultToCSV(
       "Met Criteria": JSON.stringify(result.metCriteria),
       "Unmet Criteria": JSON.stringify(result.unmetCriteria),
       "Triggered Failures": JSON.stringify(result.triggeredFailures),
-      "Conversation Length": result.conversation.length,
+      "Conversation Length": result.conversation?.length,
       Conversation: JSON.stringify(result.conversation),
       ConversationWithoutForceFinishTestMessage: JSON.stringify(
-        result.conversation.filter(
+        result.conversation?.filter(
           (message) => message.content !== result.forceFinishTestMessage
         )
       ),
