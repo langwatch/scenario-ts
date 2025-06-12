@@ -1,3 +1,4 @@
+import { CoreMessage } from "ai";
 import {
   ScenarioConfig,
   ScenarioResult,
@@ -91,9 +92,9 @@ export class Scenario {
     };
   }
 
-  public static message(message: string): ScriptStep {
+  public static message(message: CoreMessage): ScriptStep {
     return (context) => {
-      return context.user(message);
+      return context.message(message);
     };
   }
 

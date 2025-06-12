@@ -174,6 +174,16 @@ export class ScenarioExecution implements ScenarioScriptContext {
     };
   }
 
+  async message(message: CoreMessage): Promise<void> {
+    if (message.role === "user") {
+      await this.scriptCallAgent(ScenarioAgentRole.USER, message);
+    } else if (message.role === "assistant") {
+      await this.scriptCallAgent(ScenarioAgentRole.AGENT, message);
+    } else {
+      this.state.addMessage(message);
+    }
+  }
+
   async user(content?: string | CoreMessage): Promise<void> {
     await this.scriptCallAgent(ScenarioAgentRole.USER, content);
   }
