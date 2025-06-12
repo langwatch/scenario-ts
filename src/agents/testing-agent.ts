@@ -4,6 +4,7 @@ import {
   ToolCall,
   CoreUserMessage,
 } from "ai";
+import { generate } from "xksuid";
 import {
   ScenarioAgentAdapter,
   ScenarioAgentRole,
@@ -13,9 +14,14 @@ import {
 } from "../domain";
 import { FinishTestArgs, ScenarioData, TestingAgentConfig } from "./types";
 import { criterionToParamName, messageRoleReversal } from "./utils";
+import { ScenarioExecutionState } from "../scenario-execution/scenario-execution-state";
 import { Logger } from "../utils/logger";
 
 const finishTestToolName = "finish_test";
+
+const generateThreadId = () => {
+  return `thread_${generate()}`;
+};
 
 /**
  * The Testing Agent that interacts with the agent under test.
@@ -32,11 +38,20 @@ export class TestingAgent extends ScenarioAgentAdapter {
   protected readonly config: TestingAgentConfig;
   private readonly systemPrompt: string;
 
-  constructor(config: TestingAgentConfig, input: AgentInput) {
+  constructor(config: TestingAgentConfig, optionalInput?: AgentInput) {
+    const input = optionalInput ?? {
+      threadId: generateThreadId(),
+      context: {},
+      messages: [],
+      newMessages: [],
+      requestedRole: ScenarioAgentRole.USER,
+      scenarioState: new ScenarioExecutionState(),
+    } as AgentInput;
+
     super(input);
 
-    this.config = config;
     const scenario = this.extractScenarioData(input);
+    this.config = config;
     this.systemPrompt = this.buildSystemPrompt(scenario);
     this.logger = Logger.create(`TestingAgent:${this.config.name || "default"}`);
   }
