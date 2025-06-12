@@ -48,6 +48,8 @@ export class EventReporter {
         `[${event.type}] Event POST response status: ${response.status}`
       );
 
+      this.logger.debug(`View events at ${response.url}`);
+
       if (response.ok) {
         const data = await response.json();
         this.logger.debug(`[${event.type}] Event POST response:`, data);

@@ -5,16 +5,14 @@ import { ScenarioEventBus } from "../event-bus";
 import { EventReporter } from "../event-reporter";
 import { getBatchId } from "../lib";
 import {
-  ScenarioEventType,
-  ScenarioRunStatus,
   type ScenarioRunFinishedEvent,
   type ScenarioMessageSnapshotEvent,
 } from "../schemas";
+import { ScenarioEventType, ScenarioRunStatus, Verdict } from "../shared/enums";
 import {
   type ScenarioConfig,
   type ScenarioResult,
   type RunOptions,
-  Verdict,
 } from "../shared/types";
 import { formatScenarioResult } from "../shared/utils/logging";
 import { ScenarioTestingAgent } from "../testing-agent";
@@ -29,9 +27,8 @@ const PROCESS_BATCH_ID = getBatchId();
  * that simulates user behavior according to a defined strategy.
  */
 export class Scenario {
-  /** Lazily initialized testing agent instance */
   private _scenarioTestingAgent!: ScenarioTestingAgent;
-  private scenarioId = "scenario-" + randomUUID();
+  private scenarioId: string;
   private eventReporter = new EventReporter();
   private eventBus = new ScenarioEventBus(this.eventReporter);
 
@@ -41,7 +38,9 @@ export class Scenario {
    * @param config - The configuration that defines the scenario's behavior,
    *                 including description, strategy, and success/failure criteria
    */
-  constructor(public readonly config: ScenarioConfig) {}
+  constructor(public readonly config: ScenarioConfig) {
+    this.scenarioId = config.id ?? "scenario-" + randomUUID();
+  }
 
   /**
    * Gets the testing agent instance, creating it if it doesn't exist yet.
@@ -77,16 +76,24 @@ export class Scenario {
     onFinish,
   }: RunOptions): Promise<ScenarioResult> {
     const scenarioRunId = "scenario-run-" + randomUUID();
+    const eventFields = {
+      batchRunId: PROCESS_BATCH_ID,
+      scenarioId: this.scenarioId,
+      scenarioSetId: this.config.setId,
+      scenarioRunId,
+    };
 
     // Start the event bus processing pipeline
     this.eventBus.listen();
 
     // Emit start event
     this.eventBus.publish({
+      ...eventFields,
       type: ScenarioEventType.RUN_STARTED,
-      batchRunId: PROCESS_BATCH_ID,
-      scenarioId: this.scenarioId,
-      scenarioRunId,
+      metadata: {
+        name: this.config.name,
+        description: this.config.description,
+      },
       timestamp: Date.now(),
     });
 
@@ -107,10 +114,8 @@ if you don't have enough information to make a verdict, say inconclusive with ma
 
     runner.on("messages", (messages) => {
       const messageSnapshotEvent: ScenarioMessageSnapshotEvent = {
+        ...eventFields,
         type: ScenarioEventType.MESSAGE_SNAPSHOT,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
         messages: messages.map((message) => ({
           id: randomUUID(),
           role: message.role as "user" | "assistant",
@@ -126,14 +131,18 @@ if you don't have enough information to make a verdict, say inconclusive with ma
 
     runner.on("finish", (result) => {
       const runFinishedEvent: ScenarioRunFinishedEvent = {
+        ...eventFields,
         type: ScenarioEventType.RUN_FINISHED,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
         status:
           result.verdict === Verdict.Success
             ? ScenarioRunStatus.SUCCESS
             : ScenarioRunStatus.FAILED,
+        results: {
+          verdict: result.verdict,
+          metCriteria: result.metCriteria,
+          unmetCriteria: result.unmetCriteria,
+          reasoning: result.reasoning ?? "",
+        },
         timestamp: Date.now(),
       };
 
@@ -157,12 +166,15 @@ if you don't have enough information to make a verdict, say inconclusive with ma
       return result;
     } catch (error) {
       this.eventBus.publish({
+        ...eventFields,
         type: ScenarioEventType.RUN_FINISHED,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
         status: ScenarioRunStatus.CANCELLED,
-        timestamp: Date.now(),
+        results: {
+          verdict: Verdict.Inconclusive,
+          metCriteria: [],
+          unmetCriteria: [],
+          reasoning: "Scenario cancelled",
+        },
       });
 
       if (error instanceof MaxTurnsExceededError) {

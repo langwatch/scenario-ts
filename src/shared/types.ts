@@ -1,15 +1,6 @@
 import { CoreMessage } from "ai";
 import { ModelConfig } from "../model-registry";
-
-/**
- * Verdict enum represents the possible outcomes of a test scenario
- */
-export enum Verdict {
-  Success = "success",
-  Failure = "failure",
-  Inconclusive = "inconclusive",
-  Error = "error",
-}
+import { Verdict } from "./enums";
 
 /**
  * Agent interfaces
@@ -35,7 +26,10 @@ export interface TestingAgent {
  * Scenario configuration and run options
  */
 export interface ScenarioConfig {
+  id?: string;
+  name?: string;
   description: string;
+  setId?: string;
   strategy: string;
   successCriteria: string[];
   failureCriteria: string[];

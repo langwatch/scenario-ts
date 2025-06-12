@@ -6,6 +6,7 @@
  */
 import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
 import { describe, it, expect } from "vitest";
+import { kebabCase } from "../../src/lib";
 
 // A simple agent that just echoes back the message
 class EchoAgent implements TestableAgent {
@@ -18,6 +19,7 @@ describe("Simple Example", () => {
   it("tests basic conversation flow", async () => {
     // Create a simple scenario
     const scenario = new Scenario({
+      id: kebabCase(expect.getState().currentTestName),
       description: "Test basic conversation flow",
       strategy: "Test basic conversation flow",
       successCriteria: [

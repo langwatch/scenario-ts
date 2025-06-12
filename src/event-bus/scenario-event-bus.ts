@@ -1,7 +1,8 @@
 import { concatMap, EMPTY, catchError, Subject } from "rxjs";
 import { EventReporter } from "../event-reporter";
 
-import { ScenarioEvent, ScenarioEventType } from "../schemas";
+import { ScenarioEvent } from "../schemas";
+import { ScenarioEventType } from "../shared/enums";
 
 /**
  * Manages scenario event publishing, subscription, and processing pipeline.

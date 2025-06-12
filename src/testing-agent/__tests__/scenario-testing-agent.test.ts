@@ -5,7 +5,8 @@
 // take effect before the actual module code is evaluated.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ScenarioTestingAgent } from "../scenario-testing-agent";
-import { ScenarioConfig, Verdict } from "../../shared/types";
+import type { ScenarioConfig } from "../../shared/types";
+import { Verdict } from "../../shared/enums";
 
 // Mock dependencies directly with vi.mock
 vi.mock("../../model-registry", () => ({
