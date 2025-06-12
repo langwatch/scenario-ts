@@ -2,14 +2,14 @@ import { CoreMessage } from "ai";
 import { generate } from "xksuid";
 import { ScenarioExecutionState } from "./scenario-execution-state";
 import {
-  ScenarioResult,
-  ScenarioConfig,
+  type ScenarioResult,
+  type ScenarioConfig,
   ScenarioAgentRole,
-  AgentInput,
-  ScriptStep,
-  AgentReturnTypes,
-  ScenarioScriptContext,
-  ScenarioAgentAdapter
+  type AgentInput,
+  type ScriptStep,
+  type AgentReturnTypes,
+  type ScenarioScriptContext,
+  type ScenarioAgentAdapter
 } from "../domain";
 
 export interface ScenarioExecutionContext {
@@ -86,26 +86,24 @@ export class ScenarioExecution implements ScenarioScriptContext {
     ].join("\n"));
   }
 
-  async step(): Promise<CoreMessage[] | ScenarioResult | null> {
+  async step(): Promise<CoreMessage[] | ScenarioResult> {
+    const result = await this._step();
+    if (result === null) throw new Error("No result from step");
 
-
-    const currentRole = this.state.pendingRolesOnTurn[0];
-    const nextAgent = this.state.getNextAgentForRole(currentRole);
-
-    if (!nextAgent) {
-      this.state.removePendingRole(currentRole);
-      return this.step();
-    }
-
-    this.state.removePendingAgent(nextAgent.agent);
-    return this.callAgent(nextAgent.index, currentRole);
+    return result;
   }
 
-  private async _step(goToNextTurn: boolean = false): Promise<CoreMessage[] | ScenarioResult | null> {
+  private async _step(
+    goToNextTurn: boolean = true,
+    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
+  ): Promise<CoreMessage[] | ScenarioResult | null> {
     if (this.state.pendingRolesOnTurn.length === 0) {
       if (!goToNextTurn) return null;
 
       this.state.newTurn();
+
+      if (onTurn) await onTurn(this);
+
       if (this.currentTurn >= (this.config.maxTurns || 10))
         return this.reachedMaxTurns();
     }
@@ -114,7 +112,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
     const { idx, agent: nextAgent } = this.nextAgentForRole(currentRole);
     if (!nextAgent) {
       this.state.pendingRolesOnTurn.pop();
-      return this._step(goToNextTurn);
+      return this._step(goToNextTurn, onTurn);
     }
 
     this.state.pendingAgentsOnTurn.filter(agent => agent !== nextAgent);
@@ -219,22 +217,30 @@ export class ScenarioExecution implements ScenarioScriptContext {
     return await this.scriptCallAgent(ScenarioAgentRole.JUDGE, content);
   }
 
-  async proceed(turns?: number): Promise<ScenarioResult | null> {
+  async proceed(
+    turns?: number,
+    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
+    onStep?: (executor: ScenarioExecution) => void | Promise<void>,
+  ): Promise<ScenarioResult | null> {
     let initialTurn = this.state.turn;
 
     while (true) {
       const goToNextTurn = turns === void 0 || initialTurn === null || this.currentTurn + 1 < initialTurn + turns;
-      const nextMessage = await this._step(goToNextTurn);
+      const nextMessage = await this._step(goToNextTurn, onTurn);
 
       if (initialTurn === null)
         initialTurn = this.currentTurn;
 
+      if (nextMessage === null) {
+        return null;
+      }
+
+      if (onStep) await onStep(this);
+
       if (nextMessage !== null && typeof nextMessage === "object")
         return nextMessage as ScenarioResult;
-
-      if (nextMessage === null)
-        return null;
     }
+
   }
 
   async succeed(): Promise<ScenarioResult> {

@@ -167,7 +167,7 @@ If you don't have enough information to make a verdict, say inconclusive with ma
   private getMessageContext(input: AgentInput, scenario: ScenarioData) {
     return {
       isFirstMessage: input.messages.length === 0,
-      isLastMessage: input.scenarioState.turn >= (scenario.maxTurns || 10)
+      isLastMessage: input.scenarioState.turn !== null && input.scenarioState.turn >= (scenario.maxTurns || 10)
     };
   }
 

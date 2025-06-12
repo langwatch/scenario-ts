@@ -116,9 +116,13 @@ export class Scenario {
     };
   }
 
-  public static proceed(turns?: number): ScriptStep {
+  public static proceed(
+    turns?: number,
+    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
+    onStep?: (executor: ScenarioExecution) => void | Promise<void>,
+  ): ScriptStep {
     return (context) => {
-      return context.proceed(turns);
+      return context.proceed(turns, onTurn, onStep);
     };
   }
 

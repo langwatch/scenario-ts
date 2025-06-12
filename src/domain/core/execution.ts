@@ -13,7 +13,7 @@ export interface ScenarioResult {
 export interface ScenarioExecutionStateInterface {
   history: CoreMessage[];
   threadId: string;
-  turn: number;
+  turn: number | null;
   addMessage(message: CoreMessage, fromAgentIdx?: number): void;
   addMessages(messages: CoreMessage[], fromAgentIdx?: number): void;
 }

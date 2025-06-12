@@ -1,4 +1,5 @@
 import { CoreMessage } from "ai";
+import { type ScenarioExecution } from "../../scenario-execution/scenario-execution";
 import { ScenarioAgentAdapter } from "../agents/index";
 import { ScenarioResult } from "../core/execution";
 
@@ -47,7 +48,11 @@ export interface ScenarioScriptContext {
   user(content?: string | CoreMessage): Promise<void>;
   agent(content?: string | CoreMessage): Promise<void>;
   judge(content?: string | CoreMessage): Promise<ScenarioResult | null>;
-  proceed(turns?: number): Promise<ScenarioResult | null>;
+  proceed(
+    turns?: number,
+    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
+    onStep?: (executor: ScenarioExecution) => void | Promise<void>,
+  ): Promise<ScenarioResult | null>;
   succeed(): Promise<ScenarioResult>;
   fail(): Promise<ScenarioResult>;
 }
