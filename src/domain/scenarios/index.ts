@@ -43,10 +43,13 @@ export interface ScenarioScriptContext {
   readonly threadId: string;
   readonly turn: number;
 
+  message(message: CoreMessage): Promise<void>;
   user(content?: string | CoreMessage): Promise<void>;
   agent(content?: string | CoreMessage): Promise<void>;
-  judge(content?: string | CoreMessage): Promise<void>;
+  judge(content?: string | CoreMessage): Promise<ScenarioResult | null>;
   proceed(turns?: number): Promise<ScenarioResult | null>;
+  succeed(): Promise<ScenarioResult>;
+  fail(): Promise<ScenarioResult>;
 }
 
 export type ScriptStep = (context: ScenarioScriptContext) => Promise<void | ScenarioResult | null> | void | ScenarioResult | null;

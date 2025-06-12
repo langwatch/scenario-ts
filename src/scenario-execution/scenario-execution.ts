@@ -77,9 +77,12 @@ export class ScenarioExecution implements ScenarioScriptContext {
     }
 
     // If no conclusion reached, return max turns error
-    return this.reachedMaxTurns(
-      "Reached end of script without conclusion, if you don't have a manual way of ending the test, add a `proceed()` or `judge()` at the end of the script"
-    );
+    return this.reachedMaxTurns([
+      "Reached end of script without conclusion, add one of the following to the end of the script:",
+      "- `Scenario.proceed()` to let the simulation continue to play out",
+      "- `Scenario.judge()` to force criteria judgement",
+      "- `Scenario.succeed()` or `Scenario.fail()` to end the test with an explicit result",
+    ].join("\n"));
   }
 
   async step(): Promise<CoreMessage[] | ScenarioResult> {
@@ -113,6 +116,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
       messages: this.state.history,
       newMessages: this.state.getPendingMessages(idx),
       context: this.ctx || {},
+      requestedRole: role,
       scenarioState: this.state,
     };
 
@@ -178,8 +182,8 @@ export class ScenarioExecution implements ScenarioScriptContext {
     await this.scriptCallAgent(ScenarioAgentRole.AGENT, content);
   }
 
-  async judge(content?: string | CoreMessage): Promise<void> {
-    await this.scriptCallAgent(ScenarioAgentRole.JUDGE, content);
+  async judge(content?: string | CoreMessage): Promise<ScenarioResult | null> {
+    return await this.scriptCallAgent(ScenarioAgentRole.JUDGE, content);
   }
 
   async proceed(turns?: number): Promise<ScenarioResult | null> {
@@ -196,10 +200,30 @@ export class ScenarioExecution implements ScenarioScriptContext {
     return null;
   }
 
+  async succeed(): Promise<ScenarioResult> {
+    return {
+      success: true,
+      messages: this.state.history,
+      reasoning: "Scenario marked as successful with Scenario.succeed()",
+      passedCriteria: this.config.criteria,
+      failedCriteria: [],
+    };
+  }
+
+  async fail(): Promise<ScenarioResult> {
+    return {
+      success: false,
+      messages: this.state.history,
+      reasoning: "Scenario marked as failed with Scenario.fail()",
+      passedCriteria: [],
+      failedCriteria: this.config.criteria,
+    };
+  }
+
   private async scriptCallAgent(
     role: ScenarioAgentRole,
     content?: string | CoreMessage
-  ): Promise<void> {
+  ): Promise<ScenarioResult | null> {
     let nextAgent = this.state.getNextAgentForRole(role);
 
     if (!nextAgent) {
@@ -221,14 +245,19 @@ export class ScenarioExecution implements ScenarioScriptContext {
     this.state.removePendingRole(role);
 
     if (content) {
-      const message: CoreMessage = typeof content === "string"
+      const message = typeof content === "string"
         ? { role: "user", content } as CoreMessage
         : content;
 
       this.state.addMessage(message);
-      return;
+
+      return null;
     }
 
-    await this.callAgent(nextAgent.index, role);
+    const result = await this.callAgent(nextAgent.index, role);
+    if (Array.isArray(result))
+      return null;
+
+    return result;
   }
 }

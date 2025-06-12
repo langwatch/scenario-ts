@@ -120,4 +120,16 @@ export class Scenario {
       return context.proceed(turns);
     };
   }
+
+  public static succeed(): ScriptStep {
+    return (context) => {
+      return context.succeed();
+    };
+  }
+
+  public static fail(): ScriptStep {
+    return (context) => {
+      return context.fail();
+    };
+  }
 }

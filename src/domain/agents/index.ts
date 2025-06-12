@@ -12,6 +12,7 @@ export interface AgentInput {
   messages: CoreMessage[];
   newMessages: CoreMessage[];
   context: Record<string, unknown>;
+  requestedRole: ScenarioAgentRole;
   scenarioState: ScenarioExecutionStateInterface;
 }
 

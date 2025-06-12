@@ -32,7 +32,7 @@ export class TestingAgent extends ScenarioAgentAdapter {
   protected readonly config: TestingAgentConfig;
   private readonly systemPrompt: string;
 
-  constructor(input: AgentInput, config: TestingAgentConfig) {
+  constructor(config: TestingAgentConfig, input: AgentInput) {
     super(input);
 
     this.config = config;
@@ -45,16 +45,33 @@ export class TestingAgent extends ScenarioAgentAdapter {
     const scenario = this.extractScenarioData(input);
     const { isFirstMessage, isLastMessage } = this.getMessageContext(input, scenario);
 
+    const enforceJudgement = input.requestedRole === ScenarioAgentRole.JUDGE;
+    const hasCriteria = scenario.criteria.length > 0;
+    if (enforceJudgement && !hasCriteria) {
+      return {
+        success: false,
+        messages: input.messages,
+        reasoning: "TestingAgent was called as a judge, but it has no criteria to judge against",
+        passedCriteria: [],
+        failedCriteria: [],
+      }
+    }
+
+    const tools = (!isFirstMessage || enforceJudgement) && hasCriteria
+      ? { [finishTestToolName]: this.buildFinishTestTool(scenario) }
+      : void 0;
+    const toolChoice = (isLastMessage || enforceJudgement) && hasCriteria
+      ? "required"
+      : void 0;
+
     try {
       const completion = await generateText({
         model: this.config.model,
         messages: this.buildMessages(input, isLastMessage),
         temperature: this.config.temperature ?? 0.0,
         maxTokens: this.config.maxTokens,
-        tools: !isFirstMessage && scenario.criteria.length > 0 ? {
-          [finishTestToolName]: this.buildFinishTestTool(scenario),
-        } : void 0,
-        toolChoice: isLastMessage && scenario.criteria.length > 0 ? "required" : void 0,
+        tools,
+        toolChoice,
       });
 
       return this.processCompletion(completion, input, scenario);

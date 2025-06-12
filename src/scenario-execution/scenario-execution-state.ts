@@ -43,13 +43,13 @@ export class ScenarioExecutionState {
   addMessage(message: CoreMessage, fromAgentIdx?: number): void {
     this._history.push(message);
 
-    for (let idx = 0; idx < this._agents.length; idx++) {
-      if (idx === fromAgentIdx) continue;
+    for (let i = 0; i < this._agents.length; i++) {
+      if (i === fromAgentIdx) continue;
 
-      if (!this._pendingMessages.has(idx)) {
-        this._pendingMessages.set(idx, []);
+      if (!this._pendingMessages.has(i)) {
+        this._pendingMessages.set(i, []);
       }
-      this._pendingMessages.get(idx)!.push(message);
+      this._pendingMessages.get(i)!.push(message);
     }
   }
 
@@ -69,11 +69,18 @@ export class ScenarioExecutionState {
 
   newTurn(): void {
     this._pendingAgentsOnTurn = new Set(this._agents);
-    this._pendingRolesOnTurn = [
-      ScenarioAgentRole.USER,
-      ScenarioAgentRole.AGENT,
-      ScenarioAgentRole.JUDGE,
-    ];
+
+    // Only include roles that have corresponding agents
+    const availableRoles: ScenarioAgentRole[] = [];
+    const allRoles = [ScenarioAgentRole.USER, ScenarioAgentRole.AGENT, ScenarioAgentRole.JUDGE];
+
+    for (const role of allRoles) {
+      if (this._agents.some(agent => agent.roles.includes(role))) {
+        availableRoles.push(role);
+      }
+    }
+
+    this._pendingRolesOnTurn = availableRoles;
     this._turn++;
   }
 
