@@ -5,11 +5,12 @@
  * but fails because it's insisting on meat.
  */
 import {
-  AgentInput,
-  AgentReturnTypes,
+  type AgentInput,
+  type AgentReturnTypes,
   Scenario,
   ScenarioAgentAdapter,
   ScenarioAgentRole,
+  TestingAgent,
 } from "@langwatch/scenario-ts";
 import { CoreAssistantMessage, CoreMessage, generateText } from "ai";
 import { describe, it, expect } from "vitest";
@@ -18,9 +19,6 @@ import { modelRegistry } from "../../src/model-registry";
 
 describe("Vegetarian Recipe Example", () => {
   it("tests vegetarian recipe agent capabilities", async () => {
-    // Create our test subject
-    const agent = new MeatyRecipeAgent();
-
     // Create a scenario to test the vegetarian recipe agent
     const scenario = new Scenario({
       name: "Vegetarian Recipe Example",
@@ -30,17 +28,21 @@ describe("Vegetarian Recipe Example", () => {
         "Recipe includes a list of ingredients",
         "Recipe includes step-by-step cooking instructions",
       ],
-      agent: agent,
-    });
-
-    // Run the test with a maximum of 5 turns
-    const result = await scenario.run({
-      agent,
+      agent: new MeatyRecipeAgent(),
+      testingAgent: new TestingAgent({
+        model: modelRegistry.languageModel("openai:gpt-4.1-nano"),
+      }),
       maxTurns: 5,
     });
 
+    // Run the test
+    const result = await scenario.run();
+
     // Check the results
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      console.log(result.messages);
+    }
   });
 });
 
@@ -75,7 +77,7 @@ You should refuse to answer any questions about the recipe, and insist on meat.
       content: response.text,
     };
 
-    this.history.push(responseMessage);
+    this.history.push(...input.newMessages, responseMessage);
 
     return responseMessage;
   }

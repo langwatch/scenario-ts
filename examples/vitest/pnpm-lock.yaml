@@ -1316,7 +1316,7 @@ packages:
     dev: false
 
   file:../../langwatch-scenario-ts-0.2.0-prerelease.0.tgz(react@19.1.0):
-    resolution: {integrity: sha512-4/KhyhDwQvGmA3psvDz3GenLPef0E4tOxnaP8K2m+WKMIjRlfxlSPcwMWFkYzsDk35MugVUbU+WPvu4JAD9hrg==, tarball: file:../../langwatch-scenario-ts-0.2.0-prerelease.0.tgz}
+    resolution: {integrity: sha512-eMhaMDDvQreqP4KjMp130j5PrPA4k1yrmfSBrCqpXKiqLHxgQTLKeyDaIuNMSSh1OQeekdO6vVMDuFKlyXeqcg==, tarball: file:../../langwatch-scenario-ts-0.2.0-prerelease.0.tgz}
     id: file:../../langwatch-scenario-ts-0.2.0-prerelease.0.tgz
     name: '@langwatch/scenario-ts'
     version: 0.2.0-prerelease.0
