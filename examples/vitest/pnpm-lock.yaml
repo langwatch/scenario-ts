@@ -1422,7 +1422,7 @@ packages:
     dev: false
 
   file:../../langwatch-scenario-ts-0.1.0.tgz(react@19.1.0):
-    resolution: {integrity: sha512-rcaOP4Zf/CjyfrhbAJitH/966XdH2DUrzYRV3LHDgD0wmrmxT84Cn3tTUN+SwiONMqGAzXavgNdW3FsJY22ZNA==, tarball: file:../../langwatch-scenario-ts-0.1.0.tgz}
+    resolution: {integrity: sha512-/epo/PQA7K1LX6GUC62DAeJWg09T9iyxXFfNsuAQLfkQsc8NY1DcfxveeBEdQMZGewYrgHoKgte9Ofalr/htIw==, tarball: file:../../langwatch-scenario-ts-0.1.0.tgz}
     id: file:../../langwatch-scenario-ts-0.1.0.tgz
     name: '@langwatch/scenario-ts'
     version: 0.1.0

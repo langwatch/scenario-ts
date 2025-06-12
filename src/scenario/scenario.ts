@@ -91,8 +91,8 @@ export class Scenario {
       ...eventFields,
       type: ScenarioEventType.RUN_STARTED,
       metadata: {
-        name: this.config.name ?? "Unnamed Scenario",
-        description: this.config.description ?? "No description provided",
+        name: this.config.name,
+        description: this.config.description,
       },
       timestamp: Date.now(),
     });
