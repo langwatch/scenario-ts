@@ -1,4 +1,4 @@
-import { CoreMessage } from "ai";
+import { CoreMessage, CoreToolMessage } from "ai";
 import { ScenarioResult, ScenarioAgentAdapter, ScenarioAgentRole } from "../domain";
 
 export class ScenarioExecutionState {
@@ -134,6 +134,28 @@ export class ScenarioExecutionState {
 
   get lastAssistantMessage(): CoreMessage | undefined {
     return this._history.findLast(message => message.role === "assistant");
+  }
+
+  get lastToolCall(): CoreToolMessage | undefined {
+    return this._history.findLast(message => message.role === "tool");
+  }
+
+  getLastToolCallByToolName(toolName: string): CoreToolMessage | undefined {
+    const toolMessage = this._history.findLast(message =>
+      message.role === "tool" && message.content.find(
+        part => part.type === "tool-result" && part.toolName === toolName
+      ),
+    );
+
+    return toolMessage as CoreToolMessage | undefined;
+  }
+
+  hasToolCall(toolName: string): boolean {
+    return this._history.some(message =>
+      message.role === "tool" && message.content.find(
+        part => part.type === "tool-result" && part.toolName === toolName
+      ),
+    );
   }
 
   get history(): CoreMessage[] {
