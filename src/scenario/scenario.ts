@@ -1,185 +1,140 @@
-import { randomUUID } from "crypto";
-import { ConversationRunner } from "../conversation";
-import { MaxTurnsExceededError } from "../conversation/errors";
-import { ScenarioEventBus } from "../event-bus";
-import { EventReporter } from "../event-reporter";
-import { getBatchId } from "../lib";
+import { CoreMessage } from "ai";
 import {
-  ScenarioEventType,
-  ScenarioRunStatus,
-  type ScenarioRunFinishedEvent,
-  type ScenarioMessageSnapshotEvent,
-} from "../schemas";
+  ScenarioConfig,
+  ScenarioResult,
+  ScenarioAgentAdapter,
+  ScriptStep,
+  ScenarioConstructorOptions
+} from "../domain";
 import {
-  type ScenarioConfig,
-  type ScenarioResult,
-  type RunOptions,
-  Verdict,
-} from "../shared/types";
-import { formatScenarioResult } from "../shared/utils/logging";
-import { ScenarioTestingAgent } from "../testing-agent";
+  ScenarioExecution,
+} from "../scenario-execution/scenario-execution";
+import { Logger } from "../utils/logger";
 
-const PROCESS_BATCH_ID = getBatchId();
-
-/**
- * Represents a test scenario for evaluating AI agent behavior.
- *
- * This class encapsulates the configuration and execution of a test scenario,
- * providing a way to run conversations between a testable agent and a testing agent
- * that simulates user behavior according to a defined strategy.
- */
 export class Scenario {
-  /** Lazily initialized testing agent instance */
-  private _scenarioTestingAgent!: ScenarioTestingAgent;
-  private scenarioId = "scenario-" + randomUUID();
-  private eventReporter = new EventReporter();
-  private eventBus = new ScenarioEventBus(this.eventReporter);
+  public readonly name: string;
+  public readonly description: string;
+  public readonly criteria: string[];
+  public readonly agents: ScenarioAgentAdapter[];
+  public readonly maxTurns: number;
+  public readonly verbose?: boolean | number;
+  public readonly cacheKey?: string;
+  public readonly debug?: boolean;
 
-  /**
-   * Creates a new scenario with the specified configuration.
-   *
-   * @param config - The configuration that defines the scenario's behavior,
-   *                 including description, strategy, and success/failure criteria
-   */
-  constructor(public readonly config: ScenarioConfig) {}
+  private readonly logger: Logger;
 
-  /**
-   * Gets the testing agent instance, creating it if it doesn't exist yet.
-   * Uses lazy initialization to avoid creating the agent until needed.
-   *
-   * @returns The ScenarioTestingAgent instance for this scenario
-   */
-  get scenarioTestingAgent(): ScenarioTestingAgent {
-    return (this._scenarioTestingAgent ??= new ScenarioTestingAgent(
-      this.config
-    ));
-  }
-
-  public setScenarioTestingAgent(agent: ScenarioTestingAgent): Scenario {
-    this._scenarioTestingAgent = agent;
-    return this;
-  }
-
-  /**
-   * Runs the scenario with the provided agent and options.
-   *
-   * @param options - Configuration for this specific run:
-   *   - agent: The testable agent to evaluate
-   *   - maxTurns: Maximum conversation turns before ending (defaults to 2)
-   *
-   * @returns A ScenarioResult containing the outcome of the test, including
-   *          success/failure status, conversation history, and reasoning
-   */
-  public async run({
-    agent,
-    maxTurns = 2,
-    onMessages,
-    onFinish,
-  }: RunOptions): Promise<ScenarioResult> {
-    const scenarioRunId = "scenario-run-" + randomUUID();
-
-    // Start the event bus processing pipeline
-    this.eventBus.listen();
-
-    // Emit start event
-    this.eventBus.publish({
-      type: ScenarioEventType.RUN_STARTED,
-      batchRunId: PROCESS_BATCH_ID,
-      scenarioId: this.scenarioId,
-      scenarioRunId,
-      timestamp: Date.now(),
-    });
-
-    const testingAgent = this.scenarioTestingAgent;
-
-    const forceFinishTestMessage = `System:
-<finish_test>
-This is the last message, conversation has reached the maximum number of turns, give your final verdict,
-if you don't have enough information to make a verdict, say inconclusive with max turns reached.
-</finish_test>`;
-
-    const runner = new ConversationRunner({
-      agent,
-      testingAgent,
-      maxTurns,
-      forceFinishTestMessage,
-    });
-
-    runner.on("messages", (messages) => {
-      const messageSnapshotEvent: ScenarioMessageSnapshotEvent = {
-        type: ScenarioEventType.MESSAGE_SNAPSHOT,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
-        messages: messages.map((message) => ({
-          id: randomUUID(),
-          role: message.role as "user" | "assistant",
-          content: message.content as string,
-        })),
-        timestamp: Date.now(),
-      };
-
-      this.eventBus.publish(messageSnapshotEvent);
-
-      onMessages?.(messages);
-    });
-
-    runner.on("finish", (result) => {
-      const runFinishedEvent: ScenarioRunFinishedEvent = {
-        type: ScenarioEventType.RUN_FINISHED,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
-        status:
-          result.verdict === Verdict.Success
-            ? ScenarioRunStatus.SUCCESS
-            : ScenarioRunStatus.FAILED,
-        timestamp: Date.now(),
-      };
-
-      this.eventBus.publish(runFinishedEvent);
-
-      onFinish?.({
-        ...result,
-        ...this.config,
-        ...testingAgent.getTestingAgentConfig(),
-        forceFinishTestMessage,
-      });
-    });
-
-    try {
-      const result = await runner.run();
-
-      if (process.env.VERBOSE === "true") {
-        formatScenarioResult(result);
-      }
-
-      return result;
-    } catch (error) {
-      this.eventBus.publish({
-        type: ScenarioEventType.RUN_FINISHED,
-        batchRunId: PROCESS_BATCH_ID,
-        scenarioId: this.scenarioId,
-        scenarioRunId,
-        status: ScenarioRunStatus.CANCELLED,
-        timestamp: Date.now(),
-      });
-
-      if (error instanceof MaxTurnsExceededError) {
-        if (process.env.VERBOSE === "true") {
-          console.log(
-            "Max turns exceeded. Conversation history:",
-            runner.messages
-          );
-        }
-
-        throw error;
-      }
-
-      throw error;
-    } finally {
-      // Wait for the final event to be processed and drain the event bus
-      await this.eventBus.drain();
+  constructor(options: ScenarioConstructorOptions) {
+    if (!options.name) {
+      throw new Error("Scenario name cannot be empty");
     }
+    if (!options.description) {
+      throw new Error("Scenario description cannot be empty");
+    }
+    if ((options.maxTurns || 10) < 1) {
+      throw new Error("maxTurns must be a positive integer");
+    }
+
+    this.logger = Logger.create(`Scenario:${options.name}`);
+
+    this.name = options.name;
+    this.description = options.description;
+    this.criteria = options.criteria || [];
+
+    if ("agent" in options) {
+      this.logger.info("single agent configuration");
+      this.agents = [
+        options.agent,
+        options.testingAgent
+      ].filter((agent): agent is ScenarioAgentAdapter => agent !== void 0);
+    } else {
+      this.logger.info("multiple agents configuration");
+      this.agents = options.agents || [];
+    }
+
+    this.maxTurns = options.maxTurns || 10;
+    this.verbose = options.verbose;
+    this.cacheKey = options.cacheKey;
+    this.debug = options.debug;
+  }
+
+  public async run(context?: Record<string, unknown>): Promise<ScenarioResult> {
+    return await this.runWithSteps(context, null);
+  }
+
+  public async script(steps: ScriptStep[], context?: Record<string, unknown>): Promise<ScenarioResult> {
+    return await this.runWithSteps(context, steps);
+  }
+
+  private async runWithSteps(
+    context?: Record<string, unknown>,
+    script?: ScriptStep[] | null
+  ): Promise<ScenarioResult> {
+    const steps = script || [Scenario.proceed()];
+    const execution = new ScenarioExecution(
+      context ?? {},
+      this.getExecutionConfig(),
+      steps,
+    );
+
+    return execution.execute();
+  }
+
+  private getExecutionConfig(): ScenarioConfig {
+    return {
+      name: this.name,
+      description: this.description,
+      criteria: this.criteria,
+      agents: this.agents,
+      maxTurns: this.maxTurns,
+      verbose: this.verbose,
+      cacheKey: this.cacheKey,
+      debug: this.debug,
+    };
+  }
+
+  public static message(message: CoreMessage): ScriptStep {
+    return (context) => {
+      return context.message(message);
+    };
+  }
+
+  public static agent(): ScriptStep {
+    return (context) => {
+      return context.agent();
+    };
+  }
+
+  public static judge(): ScriptStep {
+    return (context) => {
+      return context.judge();
+    };
+  }
+
+  public static user(): ScriptStep {
+    return (context) => {
+      return context.user();
+    };
+  }
+
+  public static proceed(
+    turns?: number,
+    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
+    onStep?: (executor: ScenarioExecution) => void | Promise<void>,
+  ): ScriptStep {
+    return (context) => {
+      return context.proceed(turns, onTurn, onStep);
+    };
+  }
+
+  public static succeed(): ScriptStep {
+    return (context) => {
+      return context.succeed();
+    };
+  }
+
+  public static fail(): ScriptStep {
+    return (context) => {
+      return context.fail();
+    };
   }
 }

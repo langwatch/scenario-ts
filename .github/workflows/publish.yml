@@ -1,4 +1,4 @@
-name: Publish to npm
+name: publish
 
 on:
   release:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish:
+  npm:
     runs-on: ubuntu-latest
 
     steps:

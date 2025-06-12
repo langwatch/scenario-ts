@@ -4,43 +4,39 @@
  * This example demonstrates testing a basic AI agent that just echoes back the message
  * using the `Scenario` and `TestableAgent` interfaces.
  */
-import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
+import { AgentInput, AgentReturnTypes, Scenario, ScenarioAgentAdapter, ScenarioAgentRole, TestingAgent } from "@langwatch/scenario-ts";
 import { describe, it, expect } from "vitest";
+import { modelRegistry } from "../../src/model-registry";
 
 // A simple agent that just echoes back the message
-class EchoAgent implements TestableAgent {
-  async invoke(message: string) {
-    return { text: `You said: ${message}` };
+class EchoAgent implements ScenarioAgentAdapter {
+  roles: ScenarioAgentRole[];
+
+  async call(input: AgentInput): Promise<AgentReturnTypes> {
+    return `You said most recently: ${input.newMessages[0].content}`;
   }
 }
 
 describe("Simple Example", () => {
   it("tests basic conversation flow", async () => {
-    // Create a simple scenario
     const scenario = new Scenario({
+      name: "A simple scenario to test the echo",
+      agent: new EchoAgent(),
+      testingAgent: new TestingAgent({
+        model: modelRegistry.languageModel("openai:gpt-4.1-nano"),
+      }),
       description: "Test basic conversation flow",
-      strategy: "Test basic conversation flow",
-      successCriteria: [
+      criteria: [
         "Agent responds to each message",
         "Agent's response includes the original message",
       ],
-      failureCriteria: ["Agent fails to respond", "Agent's response is empty"],
     });
 
-    // Create our test subject
-    const agent = new EchoAgent();
+    const result = await scenario.run();
 
-    // Run the test
-    const result = await scenario.run({
-      agent,
-    });
-
-    // Check the results
-    try {
-      expect(result.verdict).toBe(Verdict.Success);
-    } catch (error) {
-      console.log(result);
-      throw error;
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      console.log(result.messages);
     }
   });
 });
