@@ -3,7 +3,7 @@ import { ScenarioResult, ScenarioAgentAdapter, ScenarioAgentRole } from "../doma
 
 export class ScenarioExecutionState {
   private _history: CoreMessage[] = [];
-  private _turn: number = 0;
+  private _turn: number | null = null;
   private _partialResult: Omit<ScenarioResult, "messages"> | null = null;
   private _threadId: string = "";
   private _agents: ScenarioAgentAdapter[] = [];
@@ -43,13 +43,13 @@ export class ScenarioExecutionState {
   addMessage(message: CoreMessage, fromAgentIdx?: number): void {
     this._history.push(message);
 
-    for (let i = 0; i < this._agents.length; i++) {
-      if (i === fromAgentIdx) continue;
+    for (let idx = 0; idx < this._agents.length; idx++) {
+      if (idx === fromAgentIdx) continue;
 
-      if (!this._pendingMessages.has(i)) {
-        this._pendingMessages.set(i, []);
+      if (!this._pendingMessages.has(idx)) {
+        this._pendingMessages.set(idx, []);
       }
-      this._pendingMessages.get(i)!.push(message);
+      this._pendingMessages.get(idx)!.push(message);
     }
   }
 
@@ -81,7 +81,12 @@ export class ScenarioExecutionState {
     }
 
     this._pendingRolesOnTurn = availableRoles;
-    this._turn++;
+
+    if (this._turn === null) {
+      this._turn = 1;
+    } else {
+      this._turn++;
+    }
   }
 
   removePendingRole(role: ScenarioAgentRole): void {
@@ -147,7 +152,7 @@ export class ScenarioExecutionState {
     return this._history.slice(0, lastUserMessageIndex);
   }
 
-  get turn(): number {
+  get turn(): number | null {
     return this._turn;
   }
 

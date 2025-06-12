@@ -8,7 +8,8 @@ import {
   AgentInput,
   ScriptStep,
   AgentReturnTypes,
-  ScenarioScriptContext
+  ScenarioScriptContext,
+  ScenarioAgentAdapter
 } from "../domain";
 
 export interface ScenarioExecutionContext {
@@ -85,15 +86,8 @@ export class ScenarioExecution implements ScenarioScriptContext {
     ].join("\n"));
   }
 
-  async step(): Promise<CoreMessage[] | ScenarioResult> {
-    if (this.state.pendingRolesOnTurn.length === 0) {
-      this.state.newTurn();
-      this.currentTurn++;
+  async step(): Promise<CoreMessage[] | ScenarioResult | null> {
 
-      if (this.currentTurn >= (this.config.maxTurns || 10)) {
-        return this.reachedMaxTurns();
-      }
-    }
 
     const currentRole = this.state.pendingRolesOnTurn[0];
     const nextAgent = this.state.getNextAgentForRole(currentRole);
@@ -105,6 +99,26 @@ export class ScenarioExecution implements ScenarioScriptContext {
 
     this.state.removePendingAgent(nextAgent.agent);
     return this.callAgent(nextAgent.index, currentRole);
+  }
+
+  private async _step(goToNextTurn: boolean = false): Promise<CoreMessage[] | ScenarioResult | null> {
+    if (this.state.pendingRolesOnTurn.length === 0) {
+      if (!goToNextTurn) return null;
+
+      this.state.newTurn();
+      if (this.currentTurn >= (this.config.maxTurns || 10))
+        return this.reachedMaxTurns();
+    }
+
+    const currentRole = this.state.pendingRolesOnTurn[0];
+    const { idx, agent: nextAgent } = this.nextAgentForRole(currentRole);
+    if (!nextAgent) {
+      this.state.pendingRolesOnTurn.pop();
+      return this._step(goToNextTurn);
+    }
+
+    this.state.pendingAgentsOnTurn.filter(agent => agent !== nextAgent);
+    return await this.callAgent(idx, currentRole);
   }
 
   private async callAgent(idx: number, role: ScenarioAgentRole): Promise<CoreMessage[] | ScenarioResult> {
@@ -152,6 +166,15 @@ export class ScenarioExecution implements ScenarioScriptContext {
     }
   }
 
+  private nextAgentForRole(role: ScenarioAgentRole): { idx: number; agent: ScenarioAgentAdapter | null } {
+    for (const agent of this.state.agents) {
+      if (agent.roles.includes(role) && this.state.pendingRolesOnTurn) {
+        return { idx: this.state.agents.indexOf(agent), agent };
+      }
+    }
+    return { idx: -1, agent: null };
+  }
+
   private reachedMaxTurns(errorMessage?: string): ScenarioResult {
     const agentRoleAgentsIdx = this.state.agents
       .map((agent, i) => ({ agent, idx: i }))
@@ -197,17 +220,21 @@ export class ScenarioExecution implements ScenarioScriptContext {
   }
 
   async proceed(turns?: number): Promise<ScenarioResult | null> {
-    const turnsToRun = turns || Number.MAX_SAFE_INTEGER;
+    let initialTurn = this.state.turn;
 
-    for (let i = 0; i < turnsToRun; i++) {
-      const nextMessage = await this.step();
+    while (true) {
+      const goToNextTurn = turns === void 0 || initialTurn === null || this.currentTurn + 1 < initialTurn + turns;
+      const nextMessage = await this._step(goToNextTurn);
 
-      if (typeof nextMessage === "object" && "success" in nextMessage) {
+      if (initialTurn === null)
+        initialTurn = this.currentTurn;
+
+      if (nextMessage !== null && typeof nextMessage === "object")
         return nextMessage as ScenarioResult;
-      }
-    }
 
-    return null;
+      if (nextMessage === null)
+        return null;
+    }
   }
 
   async succeed(): Promise<ScenarioResult> {
