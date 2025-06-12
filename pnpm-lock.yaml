@@ -20,9 +20,6 @@ dependencies:
   csv-stringify:
     specifier: 6.5.2
     version: 6.5.2
-  dotenv:
-    specifier: 16.5.0
-    version: 16.5.0
   rxjs:
     specifier: 7.8.2
     version: 7.8.2
@@ -2475,11 +2472,6 @@ packages:
     dependencies:
       esutils: 2.0.3
     dev: true
-
-  /dotenv@16.5.0:
-    resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
-    engines: {node: '>=12'}
-    dev: false
 
   /dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}

@@ -1,65 +1,123 @@
 import {
+  ScenarioConfig,
+  ScenarioResult,
+  ScenarioAgentAdapter,
+  ScriptStep,
+  ScenarioConstructorOptions
+} from "../domain";
+import {
   ScenarioExecution,
-  ScenarioExecutionContext,
-  ScenarioExecutionResult,
-  ScenarioExecutionStep,
-
-} from "./scenario-execution";
-import { ScenarioConfig } from "../shared/types";
-
-export interface ScenarioConfig {
-  name: string;
-  description: string;
-  criteria: string[];
-  agent: MessageAdapterAgent<unknown> | StringAdapterAgent<unknown>;
-  defaults?: {
-    maxTurns?: number;
-  };
-}
-
-interface ExecutableScript {
-  run: (ctx?: ScenarioExecutionContext) => Promise<ScenarioExecutionResult>;
-}
+} from "../scenario-execution/scenario-execution";
+import { Logger } from "../utils/logger";
 
 export class Scenario {
-  constructor(public readonly config: ScenarioConfig) { }
+  public readonly name: string;
+  public readonly description: string;
+  public readonly criteria: string[];
+  public readonly agents: ScenarioAgentAdapter[];
+  public readonly maxTurns: number;
+  public readonly verbose?: boolean | number;
+  public readonly cacheKey?: string;
+  public readonly debug?: boolean;
 
-  public async run(ctx?: ScenarioExecutionContext) {
-    const execution = new ScenarioExecution(ctx ?? {}, this.config, [
-      // Run is just syntactic sugar for a script with only a single `simulate` step
-      Scenario.simulate(),
-    ]);
+  private readonly logger: Logger;
+
+  constructor(options: ScenarioConstructorOptions) {
+    if (!options.name) {
+      throw new Error("Scenario name cannot be empty");
+    }
+    if (!options.description) {
+      throw new Error("Scenario description cannot be empty");
+    }
+    if ((options.maxTurns || 10) < 1) {
+      throw new Error("maxTurns must be a positive integer");
+    }
+
+    this.logger = Logger.create(`Scenario:${options.name}`);
+
+    this.name = options.name;
+    this.description = options.description;
+    this.criteria = options.criteria || [];
+
+    if ("agent" in options) {
+      this.logger.info("single agent configuration");
+      this.agents = [
+        options.agent,
+        options.testingAgent
+      ].filter((agent): agent is ScenarioAgentAdapter => agent !== void 0);
+    } else {
+      this.logger.info("multiple agents configuration");
+      this.agents = options.agents || [];
+    }
+
+    this.maxTurns = options.maxTurns || 10;
+    this.verbose = options.verbose;
+    this.cacheKey = options.cacheKey;
+    this.debug = options.debug;
+  }
+
+  public async run(context?: Record<string, unknown>): Promise<ScenarioResult> {
+    return await this.runWithSteps(context, null);
+  }
+
+  public async script(steps: ScriptStep[], context?: Record<string, unknown>): Promise<ScenarioResult> {
+    return await this.runWithSteps(context, steps);
+  }
+
+  private async runWithSteps(
+    context?: Record<string, unknown>,
+    script?: ScriptStep[] | null
+  ): Promise<ScenarioResult> {
+    const steps = script || [Scenario.proceed()];
+    const execution = new ScenarioExecution(
+      context ?? {},
+      this.getExecutionConfig(),
+      steps,
+    );
 
     return execution.execute();
   }
 
-  public script(steps: ScenarioExecutionStep[]): ExecutableScript {
+  private getExecutionConfig(): ScenarioConfig {
     return {
-      run: async (ctx?: ScenarioExecutionContext) => {
-        const execution = new ScenarioExecution(ctx ?? {}, this.config, steps);
-
-        return execution.execute();
-      },
+      name: this.name,
+      description: this.description,
+      criteria: this.criteria,
+      agents: this.agents,
+      maxTurns: this.maxTurns,
+      verbose: this.verbose,
+      cacheKey: this.cacheKey,
+      debug: this.debug,
     };
   }
 
-  public static message(message: string): ScenarioExecutionStep {
-    return state => state.appendMessage("user", message);
+  public static message(message: string): ScriptStep {
+    return (context) => {
+      return context.user(message);
+    };
   }
 
-  public static agent(): ScenarioExecutionStep {
-    return () => { };
+  public static agent(): ScriptStep {
+    return (context) => {
+      return context.agent();
+    };
   }
 
-  public static judge(): ScenarioExecutionStep {
-    return () => { };
+  public static judge(): ScriptStep {
+    return (context) => {
+      return context.judge();
+    };
   }
 
-  public static user(): ScenarioExecutionStep {
-    return () => { };
+  public static user(): ScriptStep {
+    return (context) => {
+      return context.user();
+    };
   }
 
-  public static simulate(turns?: number): ScenarioExecutionStep {
-    return () => { };
+  public static proceed(turns?: number): ScriptStep {
+    return (context) => {
+      return context.proceed(turns);
+    };
   }
 }
