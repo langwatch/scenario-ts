@@ -31,7 +31,7 @@ const generateThreadId = () => {
  * 2. Evaluating responses against success/failure criteria
  * 3. Determining when to end the test and return a result
  */
-export class TestingAgent extends ScenarioAgentAdapter {
+export class TestingAgent implements ScenarioAgentAdapter {
   readonly roles: ScenarioAgentRole[] = [ScenarioAgentRole.USER, ScenarioAgentRole.JUDGE];
   private readonly logger: Logger;
 

@@ -1,5 +1,5 @@
 import { CoreMessage, CoreToolMessage } from "ai";
-import { ScenarioResult, ScenarioAgentAdapter, ScenarioAgentRole } from "../domain";
+import { ScenarioResult, ScenarioAgentRole, ScenarioAgentAdapter, allAgentRoles } from "../domain";
 
 export class ScenarioExecutionState {
   private _history: CoreMessage[] = [];
@@ -72,9 +72,8 @@ export class ScenarioExecutionState {
 
     // Only include roles that have corresponding agents
     const availableRoles: ScenarioAgentRole[] = [];
-    const allRoles = [ScenarioAgentRole.USER, ScenarioAgentRole.AGENT, ScenarioAgentRole.JUDGE];
 
-    for (const role of allRoles) {
+    for (const role of allAgentRoles) {
       if (this._agents.some(agent => agent.roles.includes(role))) {
         availableRoles.push(role);
       }

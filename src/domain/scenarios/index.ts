@@ -4,40 +4,21 @@ import { ScenarioAgentAdapter } from "../agents/index";
 import { ScenarioResult } from "../core/execution";
 
 export interface ScenarioConfig {
+  id?: string;
   name: string;
   description: string;
-  criteria: string[];
+
   agents: ScenarioAgentAdapter[];
-  testingAgent?: ScenarioAgentAdapter;
+  script: ScriptStep[];
+
   maxTurns?: number;
+
   verbose?: boolean | number;
   cacheKey?: string;
   debug?: boolean;
-}
 
-interface ScenarioConstructorBase {
-  name: string;
-  description: string;
-  criteria?: string[];
-  maxTurns?: number;
-  verbose?: boolean | number;
-  cacheKey?: string;
-  debug?: boolean;
+  threadId?: string;
 }
-
-export interface ScenarioConstructorOptionsSingleAgent extends ScenarioConstructorBase {
-  agent?: ScenarioAgentAdapter;
-  testingAgent?: ScenarioAgentAdapter;
-  agents?: never;
-}
-
-export interface ScenarioConstructorOptionsMultipleAgents extends ScenarioConstructorBase {
-  agent?: never;
-  agents?: ScenarioAgentAdapter[];
-  testingAgent?: never;
-}
-
-export type ScenarioConstructorOptions = ScenarioConstructorOptionsSingleAgent | ScenarioConstructorOptionsMultipleAgents;
 
 export interface ScenarioScriptContext {
   readonly history: CoreMessage[];

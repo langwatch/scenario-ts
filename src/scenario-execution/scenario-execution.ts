@@ -9,13 +9,9 @@ import {
   type ScriptStep,
   type AgentReturnTypes,
   type ScenarioScriptContext,
-  type ScenarioAgentAdapter
+  type ScenarioAgentAdapter,
+  JudgeAgentAdapter
 } from "../domain";
-
-export interface ScenarioExecutionContext {
-  threadId?: string;
-  [key: string]: unknown;
-}
 
 function generateThreadId(): string {
   return `thread_${generate()}`;
@@ -39,7 +35,6 @@ export class ScenarioExecution implements ScenarioScriptContext {
   private currentTurn: number = 0;
 
   constructor(
-    public readonly ctx: ScenarioExecutionContext,
     public readonly config: ScenarioConfig,
     public readonly steps: ScriptStep[],
   ) {
@@ -60,7 +55,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
 
   private reset(): void {
     this.state = new ScenarioExecutionState();
-    this.state.setThreadId(this.ctx.threadId || generateThreadId());
+    this.state.setThreadId(this.config.threadId || generateThreadId());
     this.state.setAgents(this.config.agents);
     this.state.newTurn();
     this.currentTurn = 0;
@@ -127,7 +122,6 @@ export class ScenarioExecution implements ScenarioScriptContext {
       threadId: this.state.threadId,
       messages: this.state.history,
       newMessages: this.state.getPendingMessages(idx),
-      context: this.ctx || {},
       requestedRole: role,
       scenarioState: this.state,
     };
@@ -157,7 +151,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
         messages: this.state.history,
         reasoning: `Agent error: ${error instanceof Error ? error.message : String(error)}`,
         passedCriteria: [],
-        failedCriteria: this.config.criteria,
+        failedCriteria: this.getJudgeAgent()?.criteria ?? [],
         totalTime: this.state.totalTime,
         agentTime: Array.from(this.state.agentTimes.values()).reduce((sum, time) => sum + time, 0),
       };
@@ -189,7 +183,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
       messages: this.state.history,
       reasoning: errorMessage || `Reached maximum turns (${this.config.maxTurns || 10}) without conclusion`,
       passedCriteria: [],
-      failedCriteria: this.config.criteria,
+      failedCriteria: this.getJudgeAgent()?.criteria ?? [],
       totalTime: this.state.totalTime,
       agentTime: totalAgentTime,
     };
@@ -248,7 +242,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
       success: true,
       messages: this.state.history,
       reasoning: "Scenario marked as successful with Scenario.succeed()",
-      passedCriteria: this.config.criteria,
+      passedCriteria: this.getJudgeAgent()?.criteria ?? [],
       failedCriteria: [],
     };
   }
@@ -259,8 +253,12 @@ export class ScenarioExecution implements ScenarioScriptContext {
       messages: this.state.history,
       reasoning: "Scenario marked as failed with Scenario.fail()",
       passedCriteria: [],
-      failedCriteria: this.config.criteria,
+      failedCriteria: this.getJudgeAgent()?.criteria ?? [],
     };
+  }
+
+  private getJudgeAgent(): JudgeAgentAdapter | null {
+    return this.state.agents.find(agent => agent instanceof JudgeAgentAdapter) ?? null;
   }
 
   private async scriptCallAgent(
