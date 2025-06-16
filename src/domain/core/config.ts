@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const scenarioProjectConfigSchema = z.object({
-  model: z.string().optional(),
+  defaultModel: z.string().optional(),
 }).strict();
 
 export type ScenarioProjectConfig = z.infer<typeof scenarioProjectConfigSchema>;
