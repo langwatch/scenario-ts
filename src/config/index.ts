@@ -1,37 +1,39 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { ScenarioProjectConfig, scenarioProjectConfigSchema } from "../domain";
+import { ScenarioProjectConfig } from "../domain";
+import { loadScenarioProjectConfig } from "./load";
+import { Logger } from "../utils/logger";
 
-export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig> {
-  const cwd = process.cwd();
-  const configNames = [
-    "scenario.config.js",
-    "scenario.config.mjs",
-  ];
+const logger = new Logger("scenario.config");
 
-  for (const name of configNames) {
-    const fullPath = path.join(cwd, name);
-    try {
-      await fs.access(fullPath);
-      const configModule = await import(pathToFileURL(fullPath).href);
-      const config = configModule.default || configModule;
+let configLoaded = false;
+let config: ScenarioProjectConfig = {};
+let configLoadPromise: Promise<void> | null = null;
 
-      const parsed = scenarioProjectConfigSchema.safeParse(config);
-      if (!parsed.success) {
-        throw new Error(
-          `Invalid ${name}: ${JSON.stringify(parsed.error.format(), null, 2)}`
-        );
-      }
-      return parsed.data;
-    } catch (error) {
-      // Ignore only file-not-found errors
-      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-        continue;
-      }
-
-      throw error;
-    }
+async function ensureConfigLoaded() {
+  if (configLoaded) {
+    return;
   }
-  throw new Error("No scenario.config.js/mjs found in project root.");
+  if (configLoadPromise) {
+    return configLoadPromise;
+  }
+
+  configLoadPromise = (async () => {
+    try {
+      config = await loadScenarioProjectConfig();
+      logger.info("loaded scenario project config", { config });
+    } catch (error) {
+      logger.error("error loading scenario project config", { error });
+    } finally {
+      configLoaded = true;
+    }
+  })();
+
+  return configLoadPromise;
 }
+
+export async function getConfig() {
+  await ensureConfigLoaded();
+
+  return config;
+}
+
+ensureConfigLoaded();
