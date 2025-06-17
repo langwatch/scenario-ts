@@ -54,6 +54,7 @@
     "@types/jest": "^29.0.0",
     "@types/node": "22.15.15",
     "@typescript-eslint/parser": "8.32.0",
+    "@typescript/native-preview": "7.0.0-dev.20250617.1",
     "eslint": "9.26.0",
     "eslint-import-resolver-typescript": "4.3.4",
     "eslint-plugin-import": "2.31.0",

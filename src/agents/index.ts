@@ -1,1 +1,3 @@
-export * from './testing-agent';
+export * from './judge-agent';
+export * from './types';
+export * from './user-simulator-agent';

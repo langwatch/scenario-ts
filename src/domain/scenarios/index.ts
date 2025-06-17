@@ -11,11 +11,8 @@ export interface ScenarioConfig {
   agents: AgentAdapter[];
   script: ScriptStep[];
 
-  maxTurns?: number;
-
   verbose?: boolean | number;
-  cacheKey?: string;
-  debug?: boolean;
+  maxTurns?: number;
 
   threadId?: string;
 }

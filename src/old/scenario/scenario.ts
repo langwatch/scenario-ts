@@ -1,8 +1,8 @@
 import { generate } from "xksuid";
+import { EventReporter } from "../../event-reporter";
 import { ConversationRunner } from "../conversation";
 import { MaxTurnsExceededError } from "../conversation/errors";
 import { ScenarioEventBus } from "../event-bus";
-import { EventReporter } from "../../event-reporter";
 import { getBatchId } from "../lib";
 import {
   ScenarioEventType,

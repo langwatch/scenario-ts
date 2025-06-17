@@ -14,8 +14,8 @@ export const judge = (): ScriptStep => {
   return ctx => ctx.judge();
 }
 
-export const user = (): ScriptStep => {
-  return ctx => ctx.user();
+export const user = (content?: string | CoreMessage): ScriptStep => {
+  return ctx => ctx.user(content);
 }
 
 export const proceed = (

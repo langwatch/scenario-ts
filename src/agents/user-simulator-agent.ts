@@ -26,7 +26,7 @@ ${description}
 `.trim();
 }
 
-export const userSimulatorAgent = (config: TestingAgentConfig) => {
+export const userSimulatorAgent = (config?: TestingAgentConfig) => {
   return {
     role: AgentRole.USER,
 
@@ -39,8 +39,7 @@ export const userSimulatorAgent = (config: TestingAgentConfig) => {
       ];
 
       const projectConfig = await getProjectConfig();
-      const mergedConfig = mergeAndValidateConfig(config, projectConfig);
-
+      const mergedConfig = mergeAndValidateConfig(config ?? {}, projectConfig);
       if (!mergedConfig.model) {
         throw new Error("Model is required for the user simulator agent");
       }

@@ -4,7 +4,6 @@ export interface TestingAgentInferenceConfig {
   model?: LanguageModel;
   temperature?: number;
   maxTokens?: number;
-  apiKey?: string;
 }
 
 export interface TestingAgentConfig extends TestingAgentInferenceConfig {

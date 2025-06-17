@@ -192,6 +192,52 @@ export class ScenarioExecution implements ScenarioExecutionLike {
     };
   }
 
+  private getJudgeAgent(): JudgeAgentAdapter | null {
+    return this.state.agents.find(agent => agent instanceof JudgeAgentAdapter) ?? null;
+  }
+
+  private async scriptCallAgent(
+    role: AgentRole,
+    content?: string | CoreMessage,
+    judgmentRequest: boolean = false,
+  ): Promise<ScenarioResult | null> {
+    let nextAgent = this.state.getNextAgentForRole(role);
+
+    if (!nextAgent) {
+      this.state.newTurn();
+      nextAgent = this.state.getNextAgentForRole(role);
+
+      if (!nextAgent) {
+        const contentStr = typeof content === "string" ? content : content?.content || "";
+
+        throw new Error(
+          content
+            ? `Cannot generate a message for role \`${role}\` with content \`${contentStr}\` because no agent with this role was found`
+            : `Cannot generate a message for role \`${role}\` because no agent with this role was found`
+        );
+      }
+    }
+
+    this.state.removePendingAgent(nextAgent.agent);
+    this.state.removePendingRole(role);
+
+    if (content) {
+      const message = typeof content === "string"
+        ? { role: "user", content } as CoreMessage
+        : content;
+
+      this.state.addMessage(message);
+
+      return null;
+    }
+
+    const result = await this.callAgent(nextAgent.index, role, judgmentRequest);
+    if (Array.isArray(result))
+      return null;
+
+    return result;
+  }
+
   async message(message: CoreMessage): Promise<void> {
     if (message.role === "user") {
       await this.scriptCallAgent(AgentRole.USER, message);
@@ -258,51 +304,5 @@ export class ScenarioExecution implements ScenarioExecutionLike {
       passedCriteria: [],
       failedCriteria: this.getJudgeAgent()?.criteria ?? [],
     };
-  }
-
-  private getJudgeAgent(): JudgeAgentAdapter | null {
-    return this.state.agents.find(agent => agent instanceof JudgeAgentAdapter) ?? null;
-  }
-
-  private async scriptCallAgent(
-    role: AgentRole,
-    content?: string | CoreMessage,
-    judgmentRequest: boolean = false,
-  ): Promise<ScenarioResult | null> {
-    let nextAgent = this.state.getNextAgentForRole(role);
-
-    if (!nextAgent) {
-      this.state.newTurn();
-      nextAgent = this.state.getNextAgentForRole(role);
-
-      if (!nextAgent) {
-        const contentStr = typeof content === "string" ? content : content?.content || "";
-
-        throw new Error(
-          content
-            ? `Cannot generate a message for role \`${role}\` with content \`${contentStr}\` because no agent with this role was found`
-            : `Cannot generate a message for role \`${role}\` because no agent with this role was found`
-        );
-      }
-    }
-
-    this.state.removePendingAgent(nextAgent.agent);
-    this.state.removePendingRole(role);
-
-    if (content) {
-      const message = typeof content === "string"
-        ? { role: "user", content } as CoreMessage
-        : content;
-
-      this.state.addMessage(message);
-
-      return null;
-    }
-
-    const result = await this.callAgent(nextAgent.index, role, judgmentRequest);
-    if (Array.isArray(result))
-      return null;
-
-    return result;
   }
 }
