@@ -1,5 +1,5 @@
 import { CoreMessage } from "ai";
-import { ScenarioExecutionStateInterface, ScenarioResult } from "../core/execution";
+import { ScenarioExecutionStateLike, ScenarioResult } from "../core/execution";
 import { ScenarioConfig } from "../scenarios";
 
 export enum AgentRole {
@@ -16,7 +16,7 @@ export interface AgentInput {
   newMessages: CoreMessage[];
   requestedRole: AgentRole;
   judgmentRequest: boolean;
-  scenarioState: ScenarioExecutionStateInterface;
+  scenarioState: ScenarioExecutionStateLike;
   scenarioConfig: ScenarioConfig;
 }
 

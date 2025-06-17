@@ -1,5 +1,4 @@
 import { CoreMessage } from "ai";
-import { generate } from "xksuid";
 import { ScenarioExecutionState } from "./scenario-execution-state";
 import {
   type ScenarioResult,
@@ -8,14 +7,12 @@ import {
   type AgentInput,
   type ScriptStep,
   type AgentReturnTypes,
-  type ScenarioScriptContext,
+  type ScenarioExecutionLike,
   type AgentAdapter,
-  JudgeAgentAdapter
+  JudgeAgentAdapter,
+  ScenarioExecutionStateLike
 } from "../domain";
-
-function generateThreadId(): string {
-  return `thread_${generate()}`;
-}
+import { generateThreadId } from "../utils/ids";
 
 function convertAgentReturnTypesToMessages(response: AgentReturnTypes, role: "user" | "assistant"): CoreMessage[] {
   if (typeof response === "string")
@@ -30,8 +27,8 @@ function convertAgentReturnTypesToMessages(response: AgentReturnTypes, role: "us
   return [];
 }
 
-export class ScenarioExecution implements ScenarioScriptContext {
-  private state: ScenarioExecutionState = new ScenarioExecutionState();
+export class ScenarioExecution implements ScenarioExecutionLike {
+  private state: ScenarioExecutionStateLike = new ScenarioExecutionState();
   private currentTurn: number = 0;
 
   constructor(

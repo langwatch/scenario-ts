@@ -20,7 +20,7 @@ export interface ScenarioConfig {
   threadId?: string;
 }
 
-export interface ScenarioScriptContext {
+export interface ScenarioExecutionLike {
   readonly history: CoreMessage[];
   readonly threadId: string;
   readonly turn: number;
@@ -38,4 +38,4 @@ export interface ScenarioScriptContext {
   fail(): Promise<ScenarioResult>;
 }
 
-export type ScriptStep = (context: ScenarioScriptContext) => Promise<void | ScenarioResult | null> | void | ScenarioResult | null;
+export type ScriptStep = (context: ScenarioExecutionLike) => Promise<void | ScenarioResult | null> | void | ScenarioResult | null;

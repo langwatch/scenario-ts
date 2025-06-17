@@ -1,11 +1,8 @@
-import { generate } from "xksuid";
 import { allAgentRoles, AgentRole, ScenarioConfig } from "../domain";
 import { ScenarioExecution } from "../scenario-execution";
 import { proceed } from "../steps";
+import { generateThreadId } from "../utils/ids";
 
-const generateThreadId = () => {
-  return `thread_${generate()}`;
-};
 
 export function run(cfg: ScenarioConfig) {
   if (!cfg.name) {

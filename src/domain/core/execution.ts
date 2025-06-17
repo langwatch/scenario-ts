@@ -11,7 +11,7 @@ export interface ScenarioResult {
   agentTime?: number;
 }
 
-export interface ScenarioExecutionStateInterface {
+export interface ScenarioExecutionStateLike {
   history: CoreMessage[];
   historyWithoutLastMessage: CoreMessage[];
   historyWithoutLastUserMessage: CoreMessage[];

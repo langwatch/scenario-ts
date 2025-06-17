@@ -1,7 +1,7 @@
 import { CoreMessage, CoreToolMessage } from "ai";
-import { ScenarioResult, AgentRole, AgentAdapter, allAgentRoles } from "../domain";
+import { ScenarioResult, AgentRole, AgentAdapter, allAgentRoles, ScenarioExecutionStateLike } from "../domain";
 
-export class ScenarioExecutionState {
+export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   private _history: CoreMessage[] = [];
   private _turn: number | null = null;
   private _partialResult: Omit<ScenarioResult, "messages"> | null = null;
