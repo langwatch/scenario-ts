@@ -1,16 +1,14 @@
 import { LanguageModel } from "ai";
 
-export interface TestingAgentConfig {
-  name?: string;
-  model: LanguageModel;
+export interface TestingAgentInferenceConfig {
+  model?: LanguageModel;
   temperature?: number;
   maxTokens?: number;
+  apiKey?: string;
 }
 
-export interface ScenarioData {
-  description?: string;
-  criteria?: string[];
-  maxTurns?: number;
+export interface TestingAgentConfig extends TestingAgentInferenceConfig {
+  name?: string;
 }
 
 export interface FinishTestArgs {

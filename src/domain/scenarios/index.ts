@@ -1,6 +1,6 @@
 import { CoreMessage } from "ai";
 import { type ScenarioExecution } from "../../scenario-execution/scenario-execution";
-import { ScenarioAgentAdapter } from "../agents/index";
+import { AgentAdapter } from "../agents/index";
 import { ScenarioResult } from "../core/execution";
 
 export interface ScenarioConfig {
@@ -8,7 +8,7 @@ export interface ScenarioConfig {
   name: string;
   description: string;
 
-  agents: ScenarioAgentAdapter[];
+  agents: AgentAdapter[];
   script: ScriptStep[];
 
   maxTurns?: number;

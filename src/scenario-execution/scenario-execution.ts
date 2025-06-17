@@ -4,12 +4,12 @@ import { ScenarioExecutionState } from "./scenario-execution-state";
 import {
   type ScenarioResult,
   type ScenarioConfig,
-  ScenarioAgentRole,
+  AgentRole,
   type AgentInput,
   type ScriptStep,
   type AgentReturnTypes,
   type ScenarioScriptContext,
-  type ScenarioAgentAdapter,
+  type AgentAdapter,
   JudgeAgentAdapter
 } from "../domain";
 
@@ -114,7 +114,11 @@ export class ScenarioExecution implements ScenarioScriptContext {
     return await this.callAgent(idx, currentRole);
   }
 
-  private async callAgent(idx: number, role: ScenarioAgentRole): Promise<CoreMessage[] | ScenarioResult> {
+  private async callAgent(
+    idx: number,
+    role: AgentRole,
+    judgmentRequest: boolean = false,
+  ): Promise<CoreMessage[] | ScenarioResult> {
     const agent = this.state.agents[idx];
     const startTime = Date.now();
 
@@ -123,7 +127,9 @@ export class ScenarioExecution implements ScenarioScriptContext {
       messages: this.state.history,
       newMessages: this.state.getPendingMessages(idx),
       requestedRole: role,
+      judgmentRequest: judgmentRequest,
       scenarioState: this.state,
+      scenarioConfig: this.config,
     };
 
     try {
@@ -139,7 +145,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
 
       const messages = convertAgentReturnTypesToMessages(
         agentResponse,
-        role === ScenarioAgentRole.USER ? "user" : "assistant"
+        role === AgentRole.USER ? "user" : "assistant"
       );
 
       this.state.addMessages(messages, idx);
@@ -158,9 +164,9 @@ export class ScenarioExecution implements ScenarioScriptContext {
     }
   }
 
-  private nextAgentForRole(role: ScenarioAgentRole): { idx: number; agent: ScenarioAgentAdapter | null } {
+  private nextAgentForRole(role: AgentRole): { idx: number; agent: AgentAdapter | null } {
     for (const agent of this.state.agents) {
-      if (agent.roles.includes(role) && this.state.pendingRolesOnTurn) {
+      if (agent.role === role && this.state.pendingRolesOnTurn) {
         return { idx: this.state.agents.indexOf(agent), agent };
       }
     }
@@ -170,7 +176,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
   private reachedMaxTurns(errorMessage?: string): ScenarioResult {
     const agentRoleAgentsIdx = this.state.agents
       .map((agent, i) => ({ agent, idx: i }))
-      .filter(({ agent }) => agent.roles.includes(ScenarioAgentRole.AGENT))
+      .filter(({ agent }) => agent.role === AgentRole.AGENT)
       .map(({ idx }) => idx);
 
     const agentTimes = agentRoleAgentsIdx
@@ -191,24 +197,24 @@ export class ScenarioExecution implements ScenarioScriptContext {
 
   async message(message: CoreMessage): Promise<void> {
     if (message.role === "user") {
-      await this.scriptCallAgent(ScenarioAgentRole.USER, message);
+      await this.scriptCallAgent(AgentRole.USER, message);
     } else if (message.role === "assistant") {
-      await this.scriptCallAgent(ScenarioAgentRole.AGENT, message);
+      await this.scriptCallAgent(AgentRole.AGENT, message);
     } else {
       this.state.addMessage(message);
     }
   }
 
   async user(content?: string | CoreMessage): Promise<void> {
-    await this.scriptCallAgent(ScenarioAgentRole.USER, content);
+    await this.scriptCallAgent(AgentRole.USER, content);
   }
 
   async agent(content?: string | CoreMessage): Promise<void> {
-    await this.scriptCallAgent(ScenarioAgentRole.AGENT, content);
+    await this.scriptCallAgent(AgentRole.AGENT, content);
   }
 
   async judge(content?: string | CoreMessage): Promise<ScenarioResult | null> {
-    return await this.scriptCallAgent(ScenarioAgentRole.JUDGE, content);
+    return await this.scriptCallAgent(AgentRole.JUDGE, content, true);
   }
 
   async proceed(
@@ -262,8 +268,9 @@ export class ScenarioExecution implements ScenarioScriptContext {
   }
 
   private async scriptCallAgent(
-    role: ScenarioAgentRole,
-    content?: string | CoreMessage
+    role: AgentRole,
+    content?: string | CoreMessage,
+    judgmentRequest: boolean = false,
   ): Promise<ScenarioResult | null> {
     let nextAgent = this.state.getNextAgentForRole(role);
 
@@ -295,7 +302,7 @@ export class ScenarioExecution implements ScenarioScriptContext {
       return null;
     }
 
-    const result = await this.callAgent(nextAgent.index, role);
+    const result = await this.callAgent(nextAgent.index, role, judgmentRequest);
     if (Array.isArray(result))
       return null;
 

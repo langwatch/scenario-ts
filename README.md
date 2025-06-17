@@ -35,7 +35,7 @@ yarn add @langwatch/scenario-ts
 ## Usage
 
 ```typescript
-import { Scenario, TestableAgent, Verdict } from "@langwatch/scenario-ts";
+import scenario, { TestableAgent } from "@langwatch/scenario-ts";
 
 // Define your agent implementation
 class MyAgent implements TestableAgent {
@@ -45,28 +45,37 @@ class MyAgent implements TestableAgent {
   }
 }
 
-// Create a scenario to test your agent
-const scenario = new Scenario({
-  description: "User is looking for a dinner idea",
-  strategy: "Ask for a vegetarian recipe and evaluate the response",
-  successCriteria: [
-    "Recipe agent generates a vegetarian recipe",
-    "Recipe includes a list of ingredients",
-  ],
-  failureCriteria: ["The recipe is not vegetarian or includes meat"],
-});
-
-// Create your agent
 const agent = new MyAgent();
 
-// Run the test with configuration options
 const result = await scenario.run({
-  agent,
-  maxTurns: 5, // Maximum conversation turns (default: 2)
+  name: "vegetarian recipe agent",
+  description: "User wants a vegetarian dinner recipe",
+  agents: [
+    agent,
+    scenario.userSimulatorAgent(),
+    scenario.judgeAgent({
+      criteria: [
+        "Recipe has step-by-step instructions",
+        "Recipe does not contain meat or fish",
+      ],
+    })
+  ],
+  script: [
+    scenario.message({ role: "user", content: "I want a vegetarian recipe" }),
+    scenario.agent(),
+    (scenarioState) => {
+      expect(scenarioState.hasToolCall("recipe_web_search")).toBe(true);
+      // or any traditional assertion here
+    },
+    scenario.user(),
+    scenario.message({ role: "assistant", content: "I wont help you" }),
+    scenario.proceed({ turns: 2 }),
+    scenario.message({ role: "assistant", content: "Sorry, I had an issue" }),
+    scenario.proceed(),
+  ]
 });
 
-// Check the result
-if (result.verdict === Verdict.Success) {
+if (result.verdict === "success") {
   console.log("Test passed!");
 } else {
   console.log("Test failed:", result.reasoning);
@@ -74,6 +83,62 @@ if (result.verdict === Verdict.Success) {
 ```
 
 For more detailed examples, see the [examples directory](./examples/).
+
+## Advanced Usage
+
+You can define more complex scenarios with multiple agents, scripts, and assertions. For example:
+
+```typescript
+const result = await scenario.run({
+  name: "vegetarian recipe agent",
+  description: "User wants a vegetarian dinner recipe",
+  agents: [
+    agent,
+    scenario.userSimulatorAgent(),
+    scenario.judgeAgent({
+      criteria: [
+        "Recipe has step-by-step instructions",
+        "Recipe does not contain meat or fish",
+      ],
+    })
+  ],
+  script: [
+    scenario.message({ role: "user", content: "I want a vegetarian recipe" }),
+    scenario.agent(),
+    (scenarioState) => {
+      expect(scenarioState.hasToolCall("recipe_web_search")).toBe(true);
+      // or any traditional assertion here
+    },
+    scenario.user(),
+    scenario.message({ role: "assistant", content: "I wont help you" }),
+    scenario.proceed({ turns: 2 }),
+    scenario.message({ role: "assistant", content: "Sorry, I had an issue" }),
+    scenario.proceed(),
+  ]
+});
+```
+
+This allows you to:
+- Name and describe your scenario
+- Specify multiple agents (including user simulators and judges)
+- Write flexible scripts with assertions and control flow
+
+## Simple Usage (Legacy)
+
+You can still use the simpler API for basic agent testing:
+
+```typescript
+const result = await scenario.run({
+  agent,
+  maxTurns: 5, // Maximum conversation turns (default: 2)
+});
+```
+
+if (result.verdict === Verdict.Success) {
+  console.log("Test passed!");
+} else {
+  console.log("Test failed:", result.reasoning);
+}
 
 ## Documentation
 
@@ -143,6 +208,32 @@ Example:
 # Run with verbose output
 VERBOSE=true pnpm run examples:vitest:run test
 ```
+
+### Project Config File
+
+You can configure project-wide defaults by creating a `scenario.config.js` or `scenario.config.mjs` file in your project root. Use the `defineConfig` helper from `@langwatch/scenario-ts` to enable type safety and editor autocomplete:
+
+```js
+// scenario.config.js
+const { defineConfig } = require("@langwatch/scenario-ts");
+
+module.exports = defineConfig({
+  defaultModel: "gpt-4-turbo",
+});
+```
+
+Or with ESM:
+
+```js
+// scenario.config.mjs
+import { defineConfig } from "@langwatch/scenario-ts";
+
+export default defineConfig({
+  defaultModel: "gpt-4-turbo",
+});
+```
+
+This will be automatically loaded and used by the library. See the [API docs](./src/config/index.ts) for more details.
 
 ## License
 

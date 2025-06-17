@@ -1,15 +1,15 @@
 import { CoreMessage, CoreToolMessage } from "ai";
-import { ScenarioResult, ScenarioAgentRole, ScenarioAgentAdapter, allAgentRoles } from "../domain";
+import { ScenarioResult, AgentRole, AgentAdapter, allAgentRoles } from "../domain";
 
 export class ScenarioExecutionState {
   private _history: CoreMessage[] = [];
   private _turn: number | null = null;
   private _partialResult: Omit<ScenarioResult, "messages"> | null = null;
   private _threadId: string = "";
-  private _agents: ScenarioAgentAdapter[] = [];
+  private _agents: AgentAdapter[] = [];
   private _pendingMessages: Map<number, CoreMessage[]> = new Map();
-  private _pendingRolesOnTurn: ScenarioAgentRole[] = [];
-  private _pendingAgentsOnTurn: Set<ScenarioAgentAdapter> = new Set();
+  private _pendingRolesOnTurn: AgentRole[] = [];
+  private _pendingAgentsOnTurn: Set<AgentAdapter> = new Set();
   private _agentTimes: Map<number, number> = new Map();
   private _totalStartTime: number = 0;
 
@@ -21,7 +21,7 @@ export class ScenarioExecutionState {
     this._threadId = threadId;
   }
 
-  setAgents(agents: ScenarioAgentAdapter[]): void {
+  setAgents(agents: AgentAdapter[]): void {
     this._agents = agents;
     this._pendingMessages.clear();
     this._agentTimes.clear();
@@ -71,10 +71,10 @@ export class ScenarioExecutionState {
     this._pendingAgentsOnTurn = new Set(this._agents);
 
     // Only include roles that have corresponding agents
-    const availableRoles: ScenarioAgentRole[] = [];
+    const availableRoles: AgentRole[] = [];
 
     for (const role of allAgentRoles) {
-      if (this._agents.some(agent => agent.roles.includes(role))) {
+      if (this._agents.some(agent => agent.role === role)) {
         availableRoles.push(role);
       }
     }
@@ -88,21 +88,21 @@ export class ScenarioExecutionState {
     }
   }
 
-  removePendingRole(role: ScenarioAgentRole): void {
+  removePendingRole(role: AgentRole): void {
     const index = this._pendingRolesOnTurn.indexOf(role);
     if (index > -1) {
       this._pendingRolesOnTurn.splice(index, 1);
     }
   }
 
-  removePendingAgent(agent: ScenarioAgentAdapter): void {
+  removePendingAgent(agent: AgentAdapter): void {
     this._pendingAgentsOnTurn.delete(agent);
   }
 
-  getNextAgentForRole(role: ScenarioAgentRole): { index: number; agent: ScenarioAgentAdapter } | null {
+  getNextAgentForRole(role: AgentRole): { index: number; agent: AgentAdapter } | null {
     for (let i = 0; i < this._agents.length; i++) {
       const agent = this._agents[i];
-      if (agent.roles.includes(role) && this._pendingAgentsOnTurn.has(agent)) {
+      if (agent.role === role && this._pendingAgentsOnTurn.has(agent)) {
         return { index: i, agent };
       }
     }
@@ -181,15 +181,15 @@ export class ScenarioExecutionState {
     return this._threadId;
   }
 
-  get agents(): ScenarioAgentAdapter[] {
+  get agents(): AgentAdapter[] {
     return this._agents;
   }
 
-  get pendingRolesOnTurn(): ScenarioAgentRole[] {
+  get pendingRolesOnTurn(): AgentRole[] {
     return [...this._pendingRolesOnTurn];
   }
 
-  get pendingAgentsOnTurn(): ScenarioAgentAdapter[] {
+  get pendingAgentsOnTurn(): AgentAdapter[] {
     return Array.from(this._pendingAgentsOnTurn);
   }
 

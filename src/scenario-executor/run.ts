@@ -1,5 +1,5 @@
 import { generate } from "xksuid";
-import { allAgentRoles, ScenarioAgentRole, ScenarioConfig } from "../domain";
+import { allAgentRoles, AgentRole, ScenarioConfig } from "../domain";
 import { ScenarioExecution } from "../scenario-execution";
 import { proceed } from "../steps";
 
@@ -20,13 +20,13 @@ export function run(cfg: ScenarioConfig) {
   if (cfg.agents.length === 0) {
     throw new Error("At least one agent is required");
   }
-  if (!cfg.agents.find(agent => agent.roles.includes(ScenarioAgentRole.AGENT))) {
+  if (!cfg.agents.find(agent => agent.role === AgentRole.AGENT)) {
     throw new Error("At least one non-user/non-judge agent is required");
   }
 
   cfg.agents.forEach((agent, i) => {
-    if (agent.roles.length === 0 || !agent.roles.some(role => allAgentRoles.includes(role))) {
-      throw new Error(`Agent ${i} does not have valid roles.`);
+    if (!allAgentRoles.includes(agent.role)) {
+      throw new Error(`Agent ${i} has invalid role: ${agent.role}`);
     }
   });
 

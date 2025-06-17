@@ -1,58 +1,59 @@
-import { generateText, CoreMessage, ToolCall } from "ai";
-import { AgentInput, JudgeAgentAdapter, ScenarioAgentRole } from "../domain";
-import { ScenarioData, TestingAgentConfig, FinishTestArgs } from "./types";
-import { criterionToParamName, messageRoleReversal } from "./utils";
+import { generateText, CoreMessage, ToolCall, ToolSet, Tool, ToolChoice } from "ai";
+import { AgentInput, JudgeAgentAdapter, AgentRole } from "../domain";
+import { TestingAgentConfig, FinishTestArgs } from "./types";
+import { criterionToParamName } from "./utils";
+import { getProjectConfig } from "../config";
 import { ScenarioResult } from "../domain/core/execution";
+import { mergeAndValidateConfig } from "../utils/config";
 
 interface JudgeAgentConfig extends TestingAgentConfig {
+  systemPrompt?: string;
   criteria: string[];
 }
 
-function extractScenarioData(input: AgentInput): ScenarioData {
-  const scenarioState = input.scenarioState as unknown as { scenario?: ScenarioData };
-  return scenarioState.scenario || {};
-}
-
-function buildSystemPrompt(scenario: ScenarioData): string {
-  const criteriaList = scenario.criteria
+function buildSystemPrompt(criteria: string[], description: string): string {
+  const criteriaList = criteria
     ?.map((criterion, idx) => `${idx + 1}. ${criterion}`)
     .join("\n") || "No criteria provided";
 
   return `
 <role>
-You are the judge for an AI Agent test scenario. Your job is to evaluate the conversation against the criteria below and return a strict, objective verdict.
+You are an LLM as a judge watching a simulated conversation as it plays out live to determine if the agent under test meets the criteria or not.
 </role>
 
 <goal>
-Your goal is to determine if the Agent Under Test has met all the scenario criteria, based on the conversation.
+Your goal is to determine if you already have enough information to make a verdict of the scenario below, or if the conversation should continue for longer.
+If you do have enough information, use the finish_test tool to determine if all the criteria have been met, if not, use the continue_test tool to let the next step play out.
 </goal>
 
 <scenario>
-${scenario.description || "No scenario description"}
+${description}
 </scenario>
 
 <criteria>
 ${criteriaList}
 </criteria>
 
-<execution_flow>
-1. Review the conversation and compare it to the criteria
-2. For each criterion, decide if it was met (true), not met (false), or inconclusive
-3. Use the finish_test tool to submit your verdict
-</execution_flow>
-
 <rules>
-1. Only judge based on the criteria provided
-2. If any "should NOT" criteria are violated, the test fails immediately
-3. If you cannot determine the outcome for a criterion, mark it as inconclusive
-4. Be objective and strict in your evaluation
-5. Use the finish_test tool to submit your final verdict
+- Be strict, do not let the conversation continue if the agent already broke one of the "do not" or "should not" criteria.
+- DO NOT make any judgment calls that are not explicitly listed in the success or failure criteria, withhold judgement if necessary
 </rules>
 `.trim();
 }
 
-function buildFinishTestTool(scenario: ScenarioData & { criteria?: string[] }) {
-  const criteria = scenario.criteria || [];
+function buildContinueTestTool(): Tool {
+  return {
+    description: "Continue the test with the next step",
+    parameters: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+  };
+}
+
+function buildFinishTestTool(criteria: string[]): Tool {
   const criteriaNames = criteria.map(criterionToParamName);
   const criteriaProperties = Object.fromEntries(
     criteria.map((criterion, idx) => [
@@ -63,6 +64,7 @@ function buildFinishTestTool(scenario: ScenarioData & { criteria?: string[] }) {
       },
     ])
   );
+
   return {
     description: "Complete the test with a final verdict",
     parameters: {
@@ -93,26 +95,52 @@ function buildFinishTestTool(scenario: ScenarioData & { criteria?: string[] }) {
 
 export const judgeAgent = (cfg: JudgeAgentConfig) => {
   return {
-    roles: [ScenarioAgentRole.JUDGE],
+    role: AgentRole.JUDGE,
     criteria: cfg.criteria,
 
     call: async (input: AgentInput) => {
-      const scenario = extractScenarioData(input);
-      const systemPrompt = buildSystemPrompt(scenario);
+      const systemPrompt = cfg.systemPrompt ?? buildSystemPrompt(cfg.criteria, input.scenarioConfig.description);
       const messages: CoreMessage[] = [
         { role: "system", content: systemPrompt },
         ...input.messages,
         ...input.newMessages,
       ];
 
-      const reversedMessages = messageRoleReversal(messages);
-      const tools = { finish_test: buildFinishTestTool(scenario) };
-      const toolChoice = "required";
+      const isLastMessage = input.scenarioState.turn == input.scenarioConfig.maxTurns;
+
+      const projectConfig = await getProjectConfig();
+      const mergedConfig = mergeAndValidateConfig(cfg, projectConfig);
+      if (!mergedConfig.model) {
+        throw new Error("Model is required for the judge agent");
+      }
+
+      const tools: ToolSet = {
+        continue_test: buildContinueTestTool(),
+        finish_test: buildFinishTestTool(cfg.criteria),
+      };
+
+      const enforceJudgement = input.judgmentRequest;
+      const hasCriteria = cfg.criteria.length && cfg.criteria.length > 0;
+
+      if (enforceJudgement && !hasCriteria) {
+        return {
+          success: false,
+          messages: [],
+          reasoning: "JudgeAgent: No criteria was provided to be judged against",
+          passedCriteria: [],
+          failedCriteria: [],
+        } satisfies ScenarioResult;
+      }
+
+      const toolChoice: ToolChoice<typeof tools> = (isLastMessage || enforceJudgement) && hasCriteria
+        ? { type: "tool", toolName: "finish_test" }
+        : "required";
+
       const completion = await generateText({
-        model: cfg.model,
-        messages: reversedMessages,
-        temperature: cfg.temperature ?? 0.0,
-        maxTokens: cfg.maxTokens,
+        model: mergedConfig.model,
+        messages: messages,
+        temperature: mergedConfig.temperature ?? 0.0,
+        maxTokens: mergedConfig.maxTokens,
         tools,
         toolChoice,
       });
@@ -135,7 +163,7 @@ export const judgeAgent = (cfg: JudgeAgentConfig) => {
             messages: input.messages,
             reasoning: "JudgeAgent: Failed to parse LLM output as JSON or tool call",
             passedCriteria: [],
-            failedCriteria: scenario.criteria || [],
+            failedCriteria: cfg.criteria,
           } satisfies ScenarioResult;
         }
       }
@@ -145,7 +173,7 @@ export const judgeAgent = (cfg: JudgeAgentConfig) => {
           messages: input.messages,
           reasoning: "JudgeAgent: LLM output was undefined after parsing",
           passedCriteria: [],
-          failedCriteria: scenario.criteria || [],
+          failedCriteria: cfg.criteria,
         } satisfies ScenarioResult;
       }
 
@@ -153,8 +181,8 @@ export const judgeAgent = (cfg: JudgeAgentConfig) => {
       const reasoning = args.reasoning || "No reasoning provided";
       const criteria = args.criteria || {};
       const criteriaValues = Object.values(criteria);
-      const passedCriteria = (scenario.criteria || []).filter((_, i) => criteriaValues[i] === true);
-      const failedCriteria = (scenario.criteria || []).filter((_, i) => criteriaValues[i] === false);
+      const passedCriteria = cfg.criteria.filter((_, i) => criteriaValues[i] === true);
+      const failedCriteria = cfg.criteria.filter((_, i) => criteriaValues[i] === false);
 
       return {
         success: verdict === "success",

@@ -1,32 +1,29 @@
 import { CoreMessage } from "ai";
 import { ScenarioExecutionStateInterface, ScenarioResult } from "../core/execution";
+import { ScenarioConfig } from "../scenarios";
 
-export enum ScenarioAgentRole {
+export enum AgentRole {
   USER = "User",
   AGENT = "Agent",
   JUDGE = "Judge",
 }
 
-export const allAgentRoles = [ScenarioAgentRole.USER, ScenarioAgentRole.AGENT, ScenarioAgentRole.JUDGE] as const;
+export const allAgentRoles = [AgentRole.USER, AgentRole.AGENT, AgentRole.JUDGE] as const;
 
 export interface AgentInput {
   threadId: string;
   messages: CoreMessage[];
   newMessages: CoreMessage[];
-  requestedRole: ScenarioAgentRole;
+  requestedRole: AgentRole;
+  judgmentRequest: boolean;
   scenarioState: ScenarioExecutionStateInterface;
+  scenarioConfig: ScenarioConfig;
 }
 
 export type AgentReturnTypes = string | CoreMessage | CoreMessage[] | ScenarioResult;
 
-export interface ScenarioAgentAdapter {
-  roles: ScenarioAgentRole[];
-
-  call(input: AgentInput): Promise<AgentReturnTypes>;
-}
-
-export abstract class UserSimulatorAgentAdapter implements ScenarioAgentAdapter {
-  roles: ScenarioAgentRole[] = [ScenarioAgentRole.USER];
+export abstract class AgentAdapter {
+  role: AgentRole = AgentRole.AGENT;
 
   constructor(input: AgentInput) {
     void input;
@@ -35,8 +32,18 @@ export abstract class UserSimulatorAgentAdapter implements ScenarioAgentAdapter 
   abstract call(input: AgentInput): Promise<AgentReturnTypes>;
 }
 
-export abstract class JudgeAgentAdapter implements ScenarioAgentAdapter {
-  roles: ScenarioAgentRole[] = [ScenarioAgentRole.JUDGE];
+export abstract class UserSimulatorAgentAdapter implements AgentAdapter {
+  role: AgentRole = AgentRole.USER;
+
+  constructor(input: AgentInput) {
+    void input;
+  }
+
+  abstract call(input: AgentInput): Promise<AgentReturnTypes>;
+}
+
+export abstract class JudgeAgentAdapter implements AgentAdapter {
+  role: AgentRole = AgentRole.JUDGE;
   abstract criteria: string[];
 
   constructor(input: AgentInput) {

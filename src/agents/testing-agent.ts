@@ -6,8 +6,8 @@ import {
 } from "ai";
 import { generate } from "xksuid";
 import {
-  ScenarioAgentAdapter,
-  ScenarioAgentRole,
+  AgentAdapter,
+  AgentRole,
   AgentInput,
   AgentReturnTypes,
   ScenarioResult,
@@ -31,8 +31,8 @@ const generateThreadId = () => {
  * 2. Evaluating responses against success/failure criteria
  * 3. Determining when to end the test and return a result
  */
-export class TestingAgent implements ScenarioAgentAdapter {
-  readonly roles: ScenarioAgentRole[] = [ScenarioAgentRole.USER, ScenarioAgentRole.JUDGE];
+export class TestingAgent implements AgentAdapter {
+  readonly roles: AgentRole[] = [AgentRole.USER, AgentRole.JUDGE];
   private readonly logger: Logger;
 
   protected readonly config: TestingAgentConfig;
@@ -44,7 +44,7 @@ export class TestingAgent implements ScenarioAgentAdapter {
       context: {},
       messages: [],
       newMessages: [],
-      requestedRole: ScenarioAgentRole.USER,
+      requestedRole: AgentRole.USER,
       scenarioState: new ScenarioExecutionState(),
     } as AgentInput;
 
@@ -60,7 +60,7 @@ export class TestingAgent implements ScenarioAgentAdapter {
     const scenario = this.extractScenarioData(input);
     const { isFirstMessage, isLastMessage } = this.getMessageContext(input, scenario);
 
-    const enforceJudgement = input.requestedRole === ScenarioAgentRole.JUDGE;
+    const enforceJudgement = input.requestedRole === AgentRole.JUDGE;
     const hasCriteria = scenario.criteria.length > 0;
     if (enforceJudgement && !hasCriteria) {
       return {
