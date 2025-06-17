@@ -5,10 +5,10 @@ import { Logger } from "../utils/logger";
 const logger = new Logger("scenario.config");
 
 let configLoaded = false;
-let config: ScenarioProjectConfig = {};
+let config: ScenarioProjectConfig | null = null
 let configLoadPromise: Promise<void> | null = null;
 
-async function ensureConfigLoaded() {
+async function loadProjectConfig() {
   if (configLoaded) {
     return;
   }
@@ -18,7 +18,11 @@ async function ensureConfigLoaded() {
 
   configLoadPromise = (async () => {
     try {
-      config = await loadScenarioProjectConfig();
+      const loadedConfig = await loadScenarioProjectConfig();
+      if (loadedConfig) {
+        config = loadedConfig;
+      }
+
       logger.info("loaded scenario project config", { config });
     } catch (error) {
       logger.error("error loading scenario project config", { error });
@@ -30,10 +34,8 @@ async function ensureConfigLoaded() {
   return configLoadPromise;
 }
 
-export async function getConfig() {
-  await ensureConfigLoaded();
+export async function getProjectConfig() {
+  await loadProjectConfig();
 
   return config;
 }
-
-ensureConfigLoaded();

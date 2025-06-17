@@ -3,7 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { ScenarioProjectConfig, scenarioProjectConfigSchema } from "../domain";
 
-export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig> {
+export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig | null> {
   const cwd = process.cwd();
   const configNames = [
     "scenario.config.js",
@@ -20,7 +20,7 @@ export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig
       const parsed = scenarioProjectConfigSchema.safeParse(config);
       if (!parsed.success) {
         throw new Error(
-          `Invalid ${name}: ${JSON.stringify(parsed.error.format(), null, 2)}`
+          `Invalid config file ${name}: ${JSON.stringify(parsed.error.format(), null, 2)}`
         );
       }
 
@@ -34,4 +34,6 @@ export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig
       throw error;
     }
   }
+
+  return null;
 }
