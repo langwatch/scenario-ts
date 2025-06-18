@@ -25,12 +25,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/langwatch/scenario-ts.git"
+    "url": "git+https://github.com/langwatch/scenario.git"
   },
   "bugs": {
-    "url": "https://github.com/langwatch/scenario-ts/issues"
+    "url": "https://github.com/langwatch/scenario/issues"
   },
-  "homepage": "https://github.com/langwatch/scenario-ts#readme",
+  "homepage": "https://github.com/langwatch/scenario#readme",
   "author": "LangWatch",
   "license": "MIT",
   "engines": {

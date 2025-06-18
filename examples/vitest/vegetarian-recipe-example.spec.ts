@@ -4,7 +4,9 @@
  * This example demonstrates testing an AI agent that generates vegetarian recipes
  * and passes the test.
  */
+import { openai } from "@ai-sdk/openai";
 import * as scenario from "@langwatch/scenario-ts";
+import { generateText } from "ai";
 import { describe, it, expect } from "vitest";
 
 describe("Vegetarian Recipe Example", () => {
@@ -12,11 +14,21 @@ describe("Vegetarian Recipe Example", () => {
     const agent: scenario.AgentAdapter = {
       role: scenario.AgentRole.AGENT,
       call: async (input) => {
-        // A vegetarian recipe agent that can ask follow-up questions and provide recipes
-        return {
-          role: "assistant",
-          content: `Here is a vegetarian recipe for you!\nIngredients: ...\nInstructions: ...\n(Original message: ${input.newMessages[0].content})`,
-        };
+        const response = await generateText({
+          model: openai("gpt-4.1-mini", {
+
+          }),
+          messages: [{
+            role: "system",
+            content: `
+You are a vegetarian recipe agent.
+Given the user request, ask AT MOST ONE follow-up question,
+then provide a complete recipe. Keep your responses concise and focused.
+            `,
+          }, ...input.messages]
+        });
+
+        return response.text;
       },
     };
 
@@ -27,19 +39,18 @@ describe("Vegetarian Recipe Example", () => {
         agent,
         scenario.judgeAgent({
           criteria: [
-            "Recipe agent generates a vegetarian recipe",
-            "Recipe includes a list of ingredients",
-            "Recipe includes step-by-step cooking instructions",
+            "Agent should not ask more than two follow-up questions",
+            "Agent should generate a recipe",
+            "Recipe should include a list of ingredients",
+            "Recipe should include step-by-step cooking instructions",
+            "Recipe should be vegetarian and not include any sort of meat",
           ],
         }),
         scenario.userSimulatorAgent(),
       ],
-      script: [
-        scenario.user("Can you give me a vegetarian dinner recipe?"),
-        scenario.agent(),
-      ],
     });
 
+    console.log(JSON.stringify(result, null, 2));
     expect(result.success).toBe(true);
   });
 });
