@@ -1,6 +1,6 @@
 import { EventType, MessagesSnapshotEventSchema } from "@ag-ui/core";
 import { z } from "zod";
-import { safeParseXKsuid } from "./lib";
+import { safeParseXKsuid } from "../utils/ids";
 
 // Scenario event type enum
 export enum ScenarioEventType {

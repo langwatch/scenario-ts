@@ -29,10 +29,12 @@ export interface ScenarioExecutionLike {
   proceed(
     turns?: number,
     onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
-    onStep?: (executor: ScenarioExecution) => void | Promise<void>,
+    onStep?: (executor: ScenarioExecution) => void | Promise<void>
   ): Promise<ScenarioResult | null>;
   succeed(): Promise<ScenarioResult>;
   fail(): Promise<ScenarioResult>;
 }
 
-export type ScriptStep = (context: ScenarioExecutionLike) => Promise<void | ScenarioResult | null> | void | ScenarioResult | null;
+export type ScriptStep = (
+  context: ScenarioExecutionLike
+) => Promise<void | ScenarioResult | null> | void | ScenarioResult | null;

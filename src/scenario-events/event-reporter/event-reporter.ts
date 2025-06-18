@@ -1,4 +1,4 @@
-import { Logger } from "../logger";
+import { Logger } from "../../utils/logger";
 import type { ScenarioEvent } from "../schemas";
 
 /**
