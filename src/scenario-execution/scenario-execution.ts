@@ -303,7 +303,7 @@ export class ScenarioExecution implements ScenarioExecutionLike {
 
       if (onStep) await onStep(this);
 
-      if (nextMessage !== null && !Array.isArray(nextMessage))
+      if (nextMessage !== null && typeof nextMessage === "object" && "success" in nextMessage)
         return nextMessage;
     }
   }
