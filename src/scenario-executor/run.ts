@@ -45,6 +45,10 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   const result = await execution.execute();
   if (cfg.verbose && !result.success) {
     console.log(`Scenario failed: ${cfg.name}`);
+    console.log(`Reasoning: ${result.reasoning}`);
+    console.log('--------------------------------');
+    console.log(`Passed criteria: ${result.passedCriteria.join("\n- ")}`);
+    console.log(`Failed criteria: ${result.failedCriteria.join("\n- ")}`);
     console.log(result.messages.map(formatMessage).join("\n"));
   }
 
