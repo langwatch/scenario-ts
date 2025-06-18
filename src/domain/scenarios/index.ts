@@ -1,7 +1,6 @@
 import { CoreMessage } from "ai";
-import { type ScenarioExecution } from "../../scenario-execution/scenario-execution";
 import { AgentAdapter } from "../agents/index";
-import { ScenarioResult } from "../core/execution";
+import { ScenarioExecutionStateLike, ScenarioResult } from "../core/execution";
 
 export interface ScenarioConfig {
   id?: string;
@@ -27,11 +26,14 @@ export interface ScenarioExecutionLike {
   judge(content?: string | CoreMessage): Promise<ScenarioResult | null>;
   proceed(
     turns?: number,
-    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
-    onStep?: (executor: ScenarioExecution) => void | Promise<void>,
+    onTurn?: (state: ScenarioExecutionStateLike) => void | Promise<void>,
+    onStep?: (state: ScenarioExecutionStateLike) => void | Promise<void>,
   ): Promise<ScenarioResult | null>;
-  succeed(): Promise<ScenarioResult>;
-  fail(): Promise<ScenarioResult>;
+  succeed(reasoning?: string): Promise<ScenarioResult>;
+  fail(reasoning?: string): Promise<ScenarioResult>;
 }
 
-export type ScriptStep = (context: ScenarioExecutionLike) => Promise<void | ScenarioResult | null> | void | ScenarioResult | null;
+export type ScriptStep = (
+  state: ScenarioExecutionStateLike,
+  executor: ScenarioExecutionLike,
+) => Promise<void | ScenarioResult | null> | void | ScenarioResult | null;

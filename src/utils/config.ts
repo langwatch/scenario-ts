@@ -15,6 +15,8 @@ export function mergeConfig(config: TestingAgentInferenceConfig, projectConfig: 
 export function mergeAndValidateConfig(config: TestingAgentInferenceConfig, projectConfig: ScenarioProjectConfig | null) {
   const mergedConfig = mergeConfig(config, projectConfig);
 
+  mergedConfig.model = mergedConfig.model ?? projectConfig?.defaultModel?.model;
+
   if (!mergedConfig.model) {
     throw new Error("Model is required");
   }

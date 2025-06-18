@@ -5,7 +5,7 @@ import {
 } from "ai";
 import { allAgentRoles, AgentRole, ScenarioConfig, ScenarioResult } from "../domain";
 import { ScenarioExecution } from "../scenario-execution";
-import { proceed } from "../steps";
+import { proceed } from "../script";
 import { generateThreadId } from "../utils/ids";
 
 

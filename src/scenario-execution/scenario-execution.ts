@@ -58,7 +58,7 @@ export class ScenarioExecution implements ScenarioExecutionLike {
 
     // Execute script steps - pass the execution context (this), not just state
     for (const scriptStep of this.steps) {
-      const result = await scriptStep(this);
+      const result = await scriptStep(this.state, this);
       if (result && typeof result === "object" && "success" in result) {
         return result as ScenarioResult;
       }
@@ -82,14 +82,14 @@ export class ScenarioExecution implements ScenarioExecutionLike {
 
   private async _step(
     goToNextTurn: boolean = true,
-    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
+    onTurn?: (state: ScenarioExecutionStateLike) => void | Promise<void>,
   ): Promise<CoreMessage[] | ScenarioResult | null> {
     if (this.state.pendingRolesOnTurn.length === 0) {
       if (!goToNextTurn) return null;
 
       this.state.newTurn();
 
-      if (onTurn) await onTurn(this);
+      if (onTurn) await onTurn(this.state);
 
       if (this.state.turn != null && this.state.turn >= (this.config.maxTurns || 10))
         return this.reachedMaxTurns();
@@ -285,8 +285,8 @@ export class ScenarioExecution implements ScenarioExecutionLike {
 
   async proceed(
     turns?: number,
-    onTurn?: (executor: ScenarioExecution) => void | Promise<void>,
-    onStep?: (executor: ScenarioExecution) => void | Promise<void>,
+    onTurn?: (state: ScenarioExecutionStateLike) => void | Promise<void>,
+    onStep?: (state: ScenarioExecutionStateLike) => void | Promise<void>,
   ): Promise<ScenarioResult | null> {
     let initialTurn = this.state.turn;
 
@@ -301,7 +301,7 @@ export class ScenarioExecution implements ScenarioExecutionLike {
         return null;
       }
 
-      if (onStep) await onStep(this);
+      if (onStep) await onStep(this.state);
 
       if (nextMessage !== null && typeof nextMessage === "object" && "success" in nextMessage)
         return nextMessage;
