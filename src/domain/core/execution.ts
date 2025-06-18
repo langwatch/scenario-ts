@@ -35,6 +35,7 @@ export interface ScenarioExecutionStateLike {
   clearPendingMessages(agentIdx: number): void;
   newTurn(): void;
   removePendingRole(role: AgentRole): void;
+  removeLastPendingRole(): void;
   removePendingAgent(agent: AgentAdapter): void;
   getNextAgentForRole(role: AgentRole): { index: number; agent: AgentAdapter } | null;
   addAgentTime(agentIdx: number, time: number): void;

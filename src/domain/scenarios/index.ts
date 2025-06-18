@@ -9,7 +9,7 @@ export interface ScenarioConfig {
   description: string;
 
   agents: AgentAdapter[];
-  script: ScriptStep[];
+  script?: ScriptStep[];
 
   verbose?: boolean | number;
   maxTurns?: number;
@@ -20,7 +20,6 @@ export interface ScenarioConfig {
 export interface ScenarioExecutionLike {
   readonly history: CoreMessage[];
   readonly threadId: string;
-  readonly turn: number;
 
   message(message: CoreMessage): Promise<void>;
   user(content?: string | CoreMessage): Promise<void>;

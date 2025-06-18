@@ -29,7 +29,6 @@ function convertAgentReturnTypesToMessages(response: AgentReturnTypes, role: "us
 
 export class ScenarioExecution implements ScenarioExecutionLike {
   private state: ScenarioExecutionStateLike = new ScenarioExecutionState();
-  private currentTurn: number = 0;
 
   constructor(
     public readonly config: ScenarioConfig,
@@ -46,16 +45,12 @@ export class ScenarioExecution implements ScenarioExecutionLike {
     return this.state.threadId;
   }
 
-  get turn(): number {
-    return this.currentTurn;
-  }
-
   private reset(): void {
     this.state = new ScenarioExecutionState();
     this.state.setThreadId(this.config.threadId || generateThreadId());
     this.state.setAgents(this.config.agents);
     this.state.newTurn();
-    this.currentTurn = 0;
+    this.state.turn = 0;
   }
 
   async execute(): Promise<ScenarioResult> {
@@ -96,18 +91,19 @@ export class ScenarioExecution implements ScenarioExecutionLike {
 
       if (onTurn) await onTurn(this);
 
-      if (this.currentTurn >= (this.config.maxTurns || 10))
+      if (this.state.turn != null && this.state.turn >= (this.config.maxTurns || 10))
         return this.reachedMaxTurns();
     }
 
     const currentRole = this.state.pendingRolesOnTurn[0];
     const { idx, agent: nextAgent } = this.nextAgentForRole(currentRole);
     if (!nextAgent) {
-      this.state.pendingRolesOnTurn.pop();
+      this.state.removePendingRole(currentRole);
       return this._step(goToNextTurn, onTurn);
     }
 
-    this.state.pendingAgentsOnTurn.filter(agent => agent !== nextAgent);
+    this.state.removePendingAgent(nextAgent);
+
     return await this.callAgent(idx, currentRole);
   }
 
@@ -129,41 +125,29 @@ export class ScenarioExecution implements ScenarioExecutionLike {
       scenarioConfig: this.config,
     };
 
-    try {
-      const agentResponse = await agent.call(agentInput);
-      const endTime = Date.now();
+    const agentResponse = await agent.call(agentInput);
+    const endTime = Date.now();
 
-      this.state.addAgentTime(idx, endTime - startTime);
-      this.state.clearPendingMessages(idx);
+    this.state.addAgentTime(idx, endTime - startTime);
+    this.state.clearPendingMessages(idx);
 
-      if (typeof agentResponse === "object" && agentResponse && "success" in agentResponse) {
-        return agentResponse as ScenarioResult;
-      }
-
-      const messages = convertAgentReturnTypesToMessages(
-        agentResponse,
-        role === AgentRole.USER ? "user" : "assistant"
-      );
-
-      this.state.addMessages(messages, idx);
-
-      return messages;
-    } catch (error) {
-      return {
-        success: false,
-        messages: this.state.history,
-        reasoning: `Agent error: ${error instanceof Error ? error.message : String(error)}`,
-        passedCriteria: [],
-        failedCriteria: this.getJudgeAgent()?.criteria ?? [],
-        totalTime: this.state.totalTime,
-        agentTime: Array.from(this.state.agentTimes.values()).reduce((sum, time) => sum + time, 0),
-      };
+    if (typeof agentResponse === "object" && agentResponse && "success" in agentResponse) {
+      return agentResponse as ScenarioResult;
     }
+
+    const messages = convertAgentReturnTypesToMessages(
+      agentResponse,
+      role === AgentRole.USER ? "user" : "assistant"
+    );
+
+    this.state.addMessages(messages, idx);
+
+    return messages;
   }
 
   private nextAgentForRole(role: AgentRole): { idx: number; agent: AgentAdapter | null } {
     for (const agent of this.state.agents) {
-      if (agent.role === role && this.state.pendingRolesOnTurn) {
+      if (agent.role === role && this.state.pendingAgentsOnTurn.includes(agent) && this.state.pendingRolesOnTurn.includes(role)) {
         return { idx: this.state.agents.indexOf(agent), agent };
       }
     }
@@ -196,42 +180,81 @@ export class ScenarioExecution implements ScenarioExecutionLike {
     return this.state.agents.find(agent => agent instanceof JudgeAgentAdapter) ?? null;
   }
 
+  private consumeUntilRole(role: AgentRole): void {
+    while (this.state.pendingRolesOnTurn.length > 0) {
+      const nextRole = this.state.pendingRolesOnTurn[0];
+      if (nextRole === role) break;
+      this.state.pendingRolesOnTurn.pop();
+    }
+  }
+
   private async scriptCallAgent(
     role: AgentRole,
     content?: string | CoreMessage,
     judgmentRequest: boolean = false,
   ): Promise<ScenarioResult | null> {
-    let nextAgent = this.state.getNextAgentForRole(role);
+    this.consumeUntilRole(role);
 
+    let index = -1;
+    let agent: AgentAdapter | null = null;
+
+    const nextAgent = this.state.getNextAgentForRole(role);
     if (!nextAgent) {
       this.state.newTurn();
-      nextAgent = this.state.getNextAgentForRole(role);
+      this.consumeUntilRole(role);
 
+      const nextAgent = this.state.getNextAgentForRole(role);
       if (!nextAgent) {
-        const contentStr = typeof content === "string" ? content : content?.content || "";
+        let roleClass = "";
+        switch (role) {
+          case AgentRole.USER:
+            roleClass = "a scenario.userSimulatorAgent()";
+            break;
+          case AgentRole.AGENT:
+            roleClass = "a scenario.agent()";
+            break;
+          case AgentRole.JUDGE:
+            roleClass = "a scenario.judgeAgent()";
+            break;
+
+          default:
+            roleClass = "your agent";
+        }
+
+        if (content)
+          throw new Error(
+            `Cannot generate a message for role \`${role}\` with content \`${content}\` because no agent with this role was found, please add ${roleClass} to the scenario \`agents\` list`
+          );
 
         throw new Error(
-          content
-            ? `Cannot generate a message for role \`${role}\` with content \`${contentStr}\` because no agent with this role was found`
-            : `Cannot generate a message for role \`${role}\` because no agent with this role was found`
+          `Cannot generate a message for role \`${role}\` because no agent with this role was found, please add ${roleClass} to the scenario \`agents\` list`
         );
       }
+
+      index = nextAgent.index;
+      agent = nextAgent.agent;
+    } else {
+      index = nextAgent.index;
+      agent = nextAgent.agent;
     }
 
-    this.state.removePendingAgent(nextAgent.agent);
-    this.state.removePendingRole(role);
+    this.state.removePendingAgent(agent);
 
     if (content) {
-      const message = typeof content === "string"
-        ? { role: "user", content } as CoreMessage
-        : content;
-
-      this.state.addMessage(message);
+      if (typeof content === "string") {
+        if (role === AgentRole.USER) {
+          this.state.addMessage({ role: "user", content } as CoreMessage);
+        } else {
+          this.state.addMessage({ role: "assistant", content } as CoreMessage);
+        }
+      } else {
+        this.state.addMessage(content);
+      }
 
       return null;
     }
 
-    const result = await this.callAgent(nextAgent.index, role, judgmentRequest);
+    const result = await this.callAgent(index, role, judgmentRequest);
     if (Array.isArray(result))
       return null;
 
@@ -268,11 +291,11 @@ export class ScenarioExecution implements ScenarioExecutionLike {
     let initialTurn = this.state.turn;
 
     while (true) {
-      const goToNextTurn = turns === void 0 || initialTurn === null || this.currentTurn + 1 < initialTurn + turns;
+      const goToNextTurn = turns === void 0 || initialTurn === null || this.state.turn != null && this.state.turn + 1 < initialTurn + turns;
       const nextMessage = await this._step(goToNextTurn, onTurn);
 
       if (initialTurn === null)
-        initialTurn = this.currentTurn;
+        initialTurn = this.state.turn;
 
       if (nextMessage === null) {
         return null;
@@ -280,29 +303,28 @@ export class ScenarioExecution implements ScenarioExecutionLike {
 
       if (onStep) await onStep(this);
 
-      if (nextMessage !== null && typeof nextMessage === "object")
-        return nextMessage as ScenarioResult;
+      if (nextMessage !== null && !Array.isArray(nextMessage))
+        return nextMessage;
     }
-
   }
 
-  async succeed(): Promise<ScenarioResult> {
+  async succeed(reasoning?: string): Promise<ScenarioResult> {
     return {
       success: true,
       messages: this.state.history,
-      reasoning: "Scenario marked as successful with Scenario.succeed()",
-      passedCriteria: this.getJudgeAgent()?.criteria ?? [],
+      reasoning: reasoning || "Scenario marked as successful with Scenario.succeed()",
+      passedCriteria: [],
       failedCriteria: [],
     };
   }
 
-  async fail(): Promise<ScenarioResult> {
+  async fail(reasoning?: string): Promise<ScenarioResult> {
     return {
       success: false,
       messages: this.state.history,
-      reasoning: "Scenario marked as failed with Scenario.fail()",
+      reasoning: reasoning || "Scenario marked as failed with Scenario.fail()",
       passedCriteria: [],
-      failedCriteria: this.getJudgeAgent()?.criteria ?? [],
+      failedCriteria: [],
     };
   }
 }

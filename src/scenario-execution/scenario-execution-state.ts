@@ -1,9 +1,9 @@
 import { CoreMessage, CoreToolMessage } from "ai";
-import { ScenarioResult, AgentRole, AgentAdapter, allAgentRoles, ScenarioExecutionStateLike } from "../domain";
+import { ScenarioResult, AgentRole, AgentAdapter, ScenarioExecutionStateLike } from "../domain";
 
 export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   private _history: CoreMessage[] = [];
-  private _turn: number | null = null;
+  private _turn: number = 0;
   private _partialResult: Omit<ScenarioResult, "messages"> | null = null;
   private _threadId: string = "";
   private _agents: AgentAdapter[] = [];
@@ -69,17 +69,11 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
 
   newTurn(): void {
     this._pendingAgentsOnTurn = new Set(this._agents);
-
-    // Only include roles that have corresponding agents
-    const availableRoles: AgentRole[] = [];
-
-    for (const role of allAgentRoles) {
-      if (this._agents.some(agent => agent.role === role)) {
-        availableRoles.push(role);
-      }
-    }
-
-    this._pendingRolesOnTurn = availableRoles;
+    this._pendingRolesOnTurn = [
+      AgentRole.USER,
+      AgentRole.AGENT,
+      AgentRole.JUDGE,
+    ];
 
     if (this._turn === null) {
       this._turn = 1;
@@ -177,6 +171,10 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
     return this._turn;
   }
 
+  set turn(turn: number) {
+    this._turn = turn;
+  }
+
   get threadId(): string {
     return this._threadId;
   }
@@ -186,11 +184,19 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   }
 
   get pendingRolesOnTurn(): AgentRole[] {
-    return [...this._pendingRolesOnTurn];
+    return this._pendingRolesOnTurn;
+  }
+
+  set pendingRolesOnTurn(roles: AgentRole[]) {
+    this._pendingRolesOnTurn = roles;
   }
 
   get pendingAgentsOnTurn(): AgentAdapter[] {
     return Array.from(this._pendingAgentsOnTurn);
+  }
+
+  set pendingAgentsOnTurn(agents: AgentAdapter[]) {
+    this._pendingAgentsOnTurn = new Set(agents);
   }
 
   get partialResult(): Omit<ScenarioResult, "messages"> | null {
@@ -203,5 +209,9 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
 
   get agentTimes(): Map<number, number> {
     return new Map(this._agentTimes);
+  }
+
+  removeLastPendingRole(): void {
+    this._pendingRolesOnTurn.pop();
   }
 }

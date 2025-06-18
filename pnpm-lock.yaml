@@ -49,6 +49,9 @@ devDependencies:
   '@typescript/native-preview':
     specifier: 7.0.0-dev.20250617.1
     version: 7.0.0-dev.20250617.1
+  dotenv:
+    specifier: 16.5.0
+    version: 16.5.0
   eslint:
     specifier: 9.26.0
     version: 9.26.0
@@ -2551,6 +2554,11 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       esutils: 2.0.3
+    dev: true
+
+  /dotenv@16.5.0:
+    resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
+    engines: {node: '>=12'}
     dev: true
 
   /dunder-proto@1.0.1:
