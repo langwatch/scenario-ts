@@ -475,6 +475,10 @@ export class ScenarioExecution implements ScenarioExecutionLike {
     this.emitEvent({
       ...this.makeBaseEvent({ scenarioRunId }),
       type: ScenarioEventType.RUN_STARTED,
+      metadata: {
+        name: this.config.name,
+        description: this.config.description,
+      },
     } as ScenarioRunStartedEvent);
   }
 

@@ -1,6 +1,5 @@
 import { EventType, MessagesSnapshotEventSchema } from "@ag-ui/core";
 import { z } from "zod";
-import { safeParseXKsuid } from "../utils/ids";
 
 // Scenario event type enum
 export enum ScenarioEventType {
@@ -25,51 +24,11 @@ const baseEventSchema = z.object({
   rawEvent: z.any().optional(),
 });
 
-// This is the scenario batch id schema
-const batchRunIdSchema = z.string().refine(
-  (val) => {
-    const prefix = "scenario_batch_run_";
-    if (!val.startsWith(prefix)) return false;
-    const id = val.slice(prefix.length);
-    return safeParseXKsuid(id);
-  },
-  {
-    message:
-      "ID must be a valid ksuid, with the resource 'scenario_batch_run_'",
-  }
-);
-
-// This is the scenario run id schema
-const scenarioRunIdSchema = z.string().refine(
-  (val) => {
-    const prefix = "scenario_run_";
-    if (!val.startsWith(prefix)) return false;
-    const id = val.slice(prefix.length);
-    return safeParseXKsuid(id);
-  },
-  {
-    message: "ID must be a valid ksuid, with the resource 'scenario_run_'",
-  }
-);
-
-// This is the scenario id schema
-const scenarioIdSchema = z.string().refine(
-  (val) => {
-    const prefix = "scenario_";
-    if (!val.startsWith(prefix)) return false;
-    const id = val.slice(prefix.length);
-    return safeParseXKsuid(id);
-  },
-  {
-    message: "ID must be a valid ksuid, with the resource 'scenario_'",
-  }
-);
-
 // Base scenario event schema with common fields
 const baseScenarioEventSchema = baseEventSchema.extend({
-  batchRunId: batchRunIdSchema,
-  scenarioId: scenarioIdSchema,
-  scenarioRunId: scenarioRunIdSchema,
+  batchRunId: z.string(),
+  scenarioId: z.string(),
+  scenarioRunId: z.string(),
 });
 
 // Scenario Run Started Event
