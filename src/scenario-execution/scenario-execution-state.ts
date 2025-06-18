@@ -1,8 +1,15 @@
 import { CoreMessage, CoreToolMessage } from "ai";
-import { ScenarioResult, AgentRole, AgentAdapter, allAgentRoles, ScenarioExecutionStateLike } from "../domain";
+import {
+  ScenarioResult,
+  AgentRole,
+  AgentAdapter,
+  allAgentRoles,
+  ScenarioExecutionStateLike,
+} from "../domain";
+import { generateMessageId } from "../utils/ids";
 
 export class ScenarioExecutionState implements ScenarioExecutionStateLike {
-  private _history: CoreMessage[] = [];
+  private _history: (CoreMessage & { id: string })[] = [];
   private _turn: number | null = null;
   private _partialResult: Omit<ScenarioResult, "messages"> | null = null;
   private _threadId: string = "";
@@ -28,8 +35,13 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   }
 
   appendMessage(role: CoreMessage["role"], content: string): void {
-    const message: CoreMessage = { role, content } as CoreMessage;
-    this._history.push(message);
+    const message = {
+      // Required for the event bus to work
+      id: generateMessageId(),
+      role,
+      content,
+    };
+    this._history.push(message as CoreMessage & { id: string });
   }
 
   appendUserMessage(content: string): void {
@@ -41,7 +53,7 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   }
 
   addMessage(message: CoreMessage, fromAgentIdx?: number): void {
-    this._history.push(message);
+    this.appendMessage(message.role, message.content as string);
 
     for (let idx = 0; idx < this._agents.length; idx++) {
       if (idx === fromAgentIdx) continue;
@@ -74,7 +86,7 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
     const availableRoles: AgentRole[] = [];
 
     for (const role of allAgentRoles) {
-      if (this._agents.some(agent => agent.role === role)) {
+      if (this._agents.some((agent) => agent.role === role)) {
         availableRoles.push(role);
       }
     }
@@ -99,7 +111,9 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
     this._pendingAgentsOnTurn.delete(agent);
   }
 
-  getNextAgentForRole(role: AgentRole): { index: number; agent: AgentAdapter } | null {
+  getNextAgentForRole(
+    role: AgentRole
+  ): { index: number; agent: AgentAdapter } | null {
     for (let i = 0; i < this._agents.length; i++) {
       const agent = this._agents[i];
       if (agent.role === role && this._pendingAgentsOnTurn.has(agent)) {
@@ -128,32 +142,36 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   }
 
   get lastUserMessage(): CoreMessage | undefined {
-    return this._history.findLast(message => message.role === "user");
+    return this._history.findLast((message) => message.role === "user");
   }
 
   get lastAssistantMessage(): CoreMessage | undefined {
-    return this._history.findLast(message => message.role === "assistant");
+    return this._history.findLast((message) => message.role === "assistant");
   }
 
   get lastToolCall(): CoreToolMessage | undefined {
-    return this._history.findLast(message => message.role === "tool");
+    return this._history.findLast((message) => message.role === "tool");
   }
 
   getLastToolCallByToolName(toolName: string): CoreToolMessage | undefined {
-    const toolMessage = this._history.findLast(message =>
-      message.role === "tool" && message.content.find(
-        part => part.type === "tool-result" && part.toolName === toolName
-      ),
+    const toolMessage = this._history.findLast(
+      (message) =>
+        message.role === "tool" &&
+        message.content.find(
+          (part) => part.type === "tool-result" && part.toolName === toolName
+        )
     );
 
     return toolMessage as CoreToolMessage | undefined;
   }
 
   hasToolCall(toolName: string): boolean {
-    return this._history.some(message =>
-      message.role === "tool" && message.content.find(
-        part => part.type === "tool-result" && part.toolName === toolName
-      ),
+    return this._history.some(
+      (message) =>
+        message.role === "tool" &&
+        message.content.find(
+          (part) => part.type === "tool-result" && part.toolName === toolName
+        )
     );
   }
 
@@ -166,7 +184,9 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   }
 
   get historyWithoutLastUserMessage(): CoreMessage[] {
-    const lastUserMessageIndex = this._history.findLastIndex(message => message.role === "user");
+    const lastUserMessageIndex = this._history.findLastIndex(
+      (message) => message.role === "user"
+    );
 
     if (lastUserMessageIndex === -1) return this._history;
 

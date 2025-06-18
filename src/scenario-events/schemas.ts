@@ -28,30 +28,37 @@ const baseEventSchema = z.object({
 // This is the scenario batch id schema
 const batchRunIdSchema = z.string().refine(
   (val) => {
-    const [resource, id] = val.split("_");
-    return resource === "scenariobatch" && safeParseXKsuid(id);
+    const prefix = "scenario_batch_run_";
+    if (!val.startsWith(prefix)) return false;
+    const id = val.slice(prefix.length);
+    return safeParseXKsuid(id);
   },
   {
-    message: "ID must be a valid ksuid, with the resource 'scenariobatch_'",
+    message:
+      "ID must be a valid ksuid, with the resource 'scenario_batch_run_'",
   }
 );
 
 // This is the scenario run id schema
 const scenarioRunIdSchema = z.string().refine(
   (val) => {
-    const [resource, id] = val.split("_");
-    return resource === "scenariorun" && safeParseXKsuid(id);
+    const prefix = "scenario_run_";
+    if (!val.startsWith(prefix)) return false;
+    const id = val.slice(prefix.length);
+    return safeParseXKsuid(id);
   },
   {
-    message: "ID must be a valid ksuid, with the resource 'scenariorun_'",
+    message: "ID must be a valid ksuid, with the resource 'scenario_run_'",
   }
 );
 
 // This is the scenario id schema
 const scenarioIdSchema = z.string().refine(
   (val) => {
-    const [resource, id] = val.split("_");
-    return resource === "scenario" && safeParseXKsuid(id);
+    const prefix = "scenario_";
+    if (!val.startsWith(prefix)) return false;
+    const id = val.slice(prefix.length);
+    return safeParseXKsuid(id);
   },
   {
     message: "ID must be a valid ksuid, with the resource 'scenario_'",
@@ -69,11 +76,11 @@ const baseScenarioEventSchema = baseEventSchema.extend({
 // TODO: Consider metadata
 export const scenarioRunStartedSchema = baseScenarioEventSchema.extend({
   type: z.literal(ScenarioEventType.RUN_STARTED),
-  //   metadata: z.object({
-  //     name: z.string(),
-  //     description: z.string().optional(),
-  //     config: z.record(z.unknown()).optional(),
-  //   }),
+  metadata: z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    // config: z.record(z.unknown()).optional(),
+  }),
 });
 
 // Scenario Run Finished Event

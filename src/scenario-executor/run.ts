@@ -51,6 +51,9 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
     console.log(result.messages.map(formatMessage).join("\n"));
   }
 
+  // Wait for all events to be processed
+  // otherwise the process will exit before all events are processed
+  await eventBus.drain();
   return result;
 }
 

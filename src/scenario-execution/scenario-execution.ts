@@ -21,7 +21,12 @@ import {
   ScenarioRunFinishedEvent,
   ScenarioMessageSnapshotEvent,
 } from "../scenario-events";
-import { generateThreadId, getBatchRunId } from "../utils/ids";
+import {
+  generateThreadId,
+  getBatchRunId,
+  generateScenarioId,
+  generateScenarioRunId,
+} from "../utils/ids";
 
 /**
  * Converts agent response types to standardized CoreMessage array format.
@@ -56,6 +61,7 @@ export class ScenarioExecution implements ScenarioExecutionLike {
     public readonly config: ScenarioConfig,
     public readonly steps: ScriptStep[]
   ) {
+    this.config.id = this.config.id || generateScenarioId();
     this.reset();
   }
 
@@ -78,20 +84,22 @@ export class ScenarioExecution implements ScenarioExecutionLike {
   async execute(): Promise<ScenarioResult> {
     this.reset();
 
-    this.emitRunStarted();
+    const scenarioRunId = generateScenarioRunId();
+    this.emitRunStarted({
+      scenarioRunId,
+    });
 
     try {
       for (const scriptStep of this.steps) {
         const result = await scriptStep(this);
 
-        this.emitMessageSnapshot();
+        this.emitMessageSnapshot({ scenarioRunId });
 
         if (result && typeof result === "object" && "success" in result) {
-          this.emitRunFinished(
-            result.success
-              ? ScenarioRunStatus.SUCCESS
-              : ScenarioRunStatus.FAILED
-          );
+          const status = result.success
+            ? ScenarioRunStatus.SUCCESS
+            : ScenarioRunStatus.FAILED;
+          this.emitRunFinished({ scenarioRunId, status });
           return result as ScenarioResult;
         }
       }
@@ -106,11 +114,14 @@ export class ScenarioExecution implements ScenarioExecutionLike {
         ].join("\n")
       );
 
-      this.emitRunFinished(ScenarioRunStatus.FAILED);
+      this.emitRunFinished({ scenarioRunId, status: ScenarioRunStatus.FAILED });
 
       return errorResult;
     } catch (error) {
-      this.emitRunFinished(ScenarioRunStatus.ERROR);
+      this.emitRunFinished({
+        scenarioRunId,
+        status: ScenarioRunStatus.ERROR,
+      });
       throw error;
     }
   }
@@ -446,12 +457,12 @@ export class ScenarioExecution implements ScenarioExecutionLike {
   /**
    * Creates base event properties shared across all scenario events.
    */
-  private makeBaseEvent() {
+  private makeBaseEvent({ scenarioRunId }: { scenarioRunId: string }) {
     // Assumes these IDs are present in config (add validation as needed)
     return {
       batchRunId: getBatchRunId(),
       scenarioId: this.config.id!,
-      scenarioRunId: this.config.threadId!,
+      scenarioRunId,
       timestamp: Date.now(),
       rawEvent: undefined,
     };
@@ -460,9 +471,9 @@ export class ScenarioExecution implements ScenarioExecutionLike {
   /**
    * Emits a run started event to indicate scenario execution has begun.
    */
-  private emitRunStarted() {
+  private emitRunStarted({ scenarioRunId }: { scenarioRunId: string }) {
     this.emitEvent({
-      ...this.makeBaseEvent(),
+      ...this.makeBaseEvent({ scenarioRunId }),
       type: ScenarioEventType.RUN_STARTED,
     } as ScenarioRunStartedEvent);
   }
@@ -470,9 +481,9 @@ export class ScenarioExecution implements ScenarioExecutionLike {
   /**
    * Emits a message snapshot event containing current conversation history.
    */
-  private emitMessageSnapshot() {
+  private emitMessageSnapshot({ scenarioRunId }: { scenarioRunId: string }) {
     this.emitEvent({
-      ...this.makeBaseEvent(),
+      ...this.makeBaseEvent({ scenarioRunId }),
       type: ScenarioEventType.MESSAGE_SNAPSHOT,
       messages: this.state.history,
       // Add any other required fields from MessagesSnapshotEventSchema
@@ -482,9 +493,15 @@ export class ScenarioExecution implements ScenarioExecutionLike {
   /**
    * Emits a run finished event with the final execution status.
    */
-  private emitRunFinished(status: ScenarioRunStatus) {
+  private emitRunFinished({
+    scenarioRunId,
+    status,
+  }: {
+    scenarioRunId: string;
+    status: ScenarioRunStatus;
+  }) {
     this.emitEvent({
-      ...this.makeBaseEvent(),
+      ...this.makeBaseEvent({ scenarioRunId }),
       type: ScenarioEventType.RUN_FINISHED,
       status,
       // Add error/metrics fields if needed

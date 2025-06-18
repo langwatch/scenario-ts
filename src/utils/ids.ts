@@ -4,12 +4,24 @@ export function generateThreadId(): string {
   return `thread_${generate()}`;
 }
 
+export function generateScenarioRunId(): string {
+  return `scenario_run_${generate()}`;
+}
+
+export function generateScenarioId(): string {
+  return `scenario_${generate()}`;
+}
+
 export function getBatchRunId(): string {
   if (!process.env.SCENARIO_BATCH_ID) {
-    process.env.SCENARIO_BATCH_ID = `scenariobatch_${generate()}`;
+    process.env.SCENARIO_BATCH_ID = `scenario_batch_run_${generate()}`;
   }
 
   return process.env.SCENARIO_BATCH_ID;
+}
+
+export function generateMessageId(): string {
+  return `scenario_message_${generate()}`;
 }
 
 /**
@@ -24,18 +36,4 @@ export const safeParseXKsuid = (id: string) => {
   } catch {
     return false;
   }
-};
-
-/**
- * Gets the scenario batch ID for a scenario run. The scenario batch ID should be
- * the same for the current process, and should be unique across processes.
- *
- * @returns A string representing the scenario batch ID.
- */
-export const getBatchId = (): string => {
-  if (!process.env.SCENARIO_BATCH_ID) {
-    process.env.SCENARIO_BATCH_ID = `scenariobatch_${generate()}`;
-  }
-
-  return process.env.SCENARIO_BATCH_ID;
 };
