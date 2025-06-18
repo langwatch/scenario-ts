@@ -103,7 +103,6 @@ export const judgeAgent = (cfg: JudgeAgentConfig) => {
       const messages: CoreMessage[] = [
         { role: "system", content: systemPrompt },
         ...input.messages,
-        ...input.newMessages,
       ];
 
       const isLastMessage = input.scenarioState.turn == input.scenarioConfig.maxTurns;
