@@ -59,11 +59,6 @@ const weatherAgent: scenario.AgentAdapter = {
 
 describe("Weather Agent", () => {
   it("should call the get_current_weather tool in the scenario", async () => {
-    // Custom assertion to check for tool call
-    function checkForWeatherToolCall(state: scenario.ScenarioExecutionStateLike) {
-      expect(state.hasToolCall("get_current_weather")).toBe(true);
-    }
-
     const result = await scenario.run({
       name: "checking the weather",
       description: `The user is planning a boat trip from Barcelona to Rome, and is wondering what the weather will be like.`,
@@ -74,7 +69,7 @@ describe("Weather Agent", () => {
       script: [
         scenario.user(),
         scenario.agent(),
-        checkForWeatherToolCall,
+        state => expect(state.hasToolCall("get_current_weather")).toBe(true),
         scenario.succeed(),
       ],
     });
