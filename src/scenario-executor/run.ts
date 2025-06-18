@@ -1,13 +1,16 @@
+import { AssistantContent, ToolContent, CoreMessage } from "ai";
 import {
-  AssistantContent,
-  ToolContent,
-  CoreMessage,
-} from "ai";
-import { allAgentRoles, AgentRole, ScenarioConfig, ScenarioResult } from "../domain";
+  allAgentRoles,
+  AgentRole,
+  ScenarioConfig,
+  ScenarioResult,
+} from "../domain";
+import { ScenarioEventBus } from "../scenario-events";
 import { ScenarioExecution } from "../scenario-execution";
 import { proceed } from "../steps";
 import { generateThreadId } from "../utils/ids";
 
+const eventBus = new ScenarioEventBus();
 
 export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   if (!cfg.name) {
@@ -22,7 +25,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   if (cfg.agents.length === 0) {
     throw new Error("At least one agent is required");
   }
-  if (!cfg.agents.find(agent => agent.role === AgentRole.AGENT)) {
+  if (!cfg.agents.find((agent) => agent.role === AgentRole.AGENT)) {
     throw new Error("At least one non-user/non-judge agent is required");
   }
 
@@ -37,10 +40,10 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   }
 
   const steps = cfg.script || [proceed()];
-  const execution = new ScenarioExecution(
-    cfg,
-    steps,
-  );
+  const execution = new ScenarioExecution(cfg, steps);
+
+  eventBus.listen();
+  eventBus.subscribeTo(execution.events$);
 
   const result = await execution.execute();
   if (cfg.verbose && !result.success) {
@@ -52,7 +55,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
 }
 
 function formatMessage(m: CoreMessage): string {
-  switch(m.role) {
+  switch (m.role) {
     case "user":
       return `User: ${m.content}`;
     case "assistant":
@@ -81,16 +84,24 @@ function formatParts(part: AssistantContent | ToolContent): string {
   return "Unknown content: " + JSON.stringify(part);
 }
 
-function formatPart(part: (Exclude<AssistantContent, string> | ToolContent)[number]): string {
-  switch(part.type) {
+function formatPart(
+  part: (Exclude<AssistantContent, string> | ToolContent)[number]
+): string {
+  switch (part.type) {
     case "text":
       return part.text;
     case "file":
-      return `(file): ${part.filename} ${typeof part.data === "string" ? `url:${part.data}` : 'base64:omitted'}`;
+      return `(file): ${part.filename} ${
+        typeof part.data === "string" ? `url:${part.data}` : "base64:omitted"
+      }`;
     case "tool-call":
-      return `(tool call): ${part.toolName} id:${part.toolCallId} args:(${JSON.stringify(part.args)})`;
+      return `(tool call): ${part.toolName} id:${
+        part.toolCallId
+      } args:(${JSON.stringify(part.args)})`;
     case "tool-result":
-      return `(tool result): ${part.toolName} id:${part.toolCallId} result:(${JSON.stringify(part.result)})`;
+      return `(tool result): ${part.toolName} id:${
+        part.toolCallId
+      } result:(${JSON.stringify(part.result)})`;
     case "reasoning":
       return `(reasoning): ${part.text}`;
     case "redacted-reasoning":

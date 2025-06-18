@@ -1,7 +1,9 @@
-import { concatMap, EMPTY, catchError, Subject } from "rxjs";
+import { concatMap, EMPTY, catchError, Subject, Observable } from "rxjs";
+import { Logger } from "../../utils/logger";
 import { EventReporter } from "../event-reporter";
-
 import { ScenarioEvent, ScenarioEventType } from "../schemas";
+
+const logger = new Logger("ScenarioEventBus");
 
 /**
  * Manages scenario event publishing, subscription, and processing pipeline.
@@ -39,7 +41,7 @@ export class ScenarioEventBus {
             return event;
           }),
           catchError((error) => {
-            console.error("Error in event stream:", error);
+            logger.error("Error in event stream:", error);
             return EMPTY;
           })
         )
@@ -50,7 +52,7 @@ export class ScenarioEventBus {
             }
           },
           error: (error) => {
-            console.error("Error in event stream:", error);
+            logger.error("Error in event stream:", error);
             reject(error);
           },
         });
@@ -68,5 +70,13 @@ export class ScenarioEventBus {
     if (this.processingPromise) {
       await this.processingPromise;
     }
+  }
+
+  /**
+   * Subscribes to an event stream.
+   * @param source$ - The event stream to subscribe to.
+   */
+  subscribeTo(source$: Observable<ScenarioEvent>) {
+    source$.subscribe(this.events$);
   }
 }
