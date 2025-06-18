@@ -1,5 +1,5 @@
 {
-  "name": "@langwatch/scenario-ts",
+  "name": "@langwatch/scenario",
   "version": "0.2.0-prerelease.0",
   "description": "A TypeScript library for testing AI agents using scenarios",
   "main": "dist/index.js",
@@ -55,6 +55,7 @@
     "@types/node": "22.15.15",
     "@typescript-eslint/parser": "8.32.0",
     "@typescript/native-preview": "7.0.0-dev.20250617.1",
+    "dotenv": "16.5.0",
     "eslint": "9.26.0",
     "eslint-import-resolver-typescript": "4.3.4",
     "eslint-plugin-import": "2.31.0",
