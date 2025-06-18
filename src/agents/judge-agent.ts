@@ -1,4 +1,5 @@
-import { generateText, CoreMessage, ToolCall, ToolSet, Tool, ToolChoice } from "ai";
+import { generateText, CoreMessage, ToolSet, Tool, ToolChoice, tool } from "ai";
+import { z } from "zod";
 import { AgentInput, JudgeAgentAdapter, AgentRole } from "../domain";
 import { TestingAgentConfig, FinishTestArgs } from "./types";
 import { criterionToParamName } from "./utils";
@@ -42,55 +43,30 @@ ${criteriaList}
 }
 
 function buildContinueTestTool(): Tool {
-  return {
+  return tool({
     description: "Continue the test with the next step",
-    parameters: {
-      type: "object" as const,
-      properties: {},
-      required: [],
-      additionalProperties: false,
-    },
-  };
+    parameters: z.object({}),
+  });
 }
 
 function buildFinishTestTool(criteria: string[]): Tool {
   const criteriaNames = criteria.map(criterionToParamName);
-  const criteriaProperties = Object.fromEntries(
-    criteria.map((criterion, idx) => [
-      criteriaNames[idx],
-      {
-        enum: [true, false, "inconclusive"],
-        description: criterion,
-      },
-    ])
-  );
 
-  return {
+  return tool({
     description: "Complete the test with a final verdict",
-    parameters: {
-      type: "object" as const,
-      properties: {
-        criteria: {
-          type: "object" as const,
-          properties: criteriaProperties,
-          required: criteriaNames,
-          additionalProperties: false,
-          description: "Strict verdict for each criterion",
-        },
-        reasoning: {
-          type: "string" as const,
-          description: "Explanation of what the final verdict should be",
-        },
-        verdict: {
-          type: "string" as const,
-          enum: ["success", "failure", "inconclusive"],
-          description: "The final verdict of the test",
-        },
-      },
-      required: ["criteria", "reasoning", "verdict"],
-      additionalProperties: false,
-    },
-  };
+    parameters: z.object({
+      criteria: z.object(
+        Object.fromEntries(
+          criteriaNames.map((name, idx) => [
+            name,
+            z.enum(["true", "false", "inconclusive"]).describe(criteria[idx])
+          ])
+        )
+      ).strict().describe("Strict verdict for each criterion"),
+      reasoning: z.string().describe("Explanation of what the final verdict should be"),
+      verdict: z.enum(["success", "failure", "inconclusive"]).describe("The final verdict of the test"),
+    }),
+  });
 }
 
 export const judgeAgent = (cfg: JudgeAgentConfig) => {
@@ -147,48 +123,49 @@ export const judgeAgent = (cfg: JudgeAgentConfig) => {
       // Prefer tool call, fallback to JSON
       let args: FinishTestArgs | undefined;
       if (completion.toolCalls?.length) {
-        const toolCall = completion.toolCalls[0] as ToolCall<string, FinishTestArgs>;
-        if (toolCall.toolName === "finish_test") {
-          args = toolCall.args;
+        const toolCall = completion.toolCalls[0];
+
+        switch (toolCall.toolName) {
+          case "finish_test": {
+            args = toolCall.args as FinishTestArgs;
+
+            const verdict = args.verdict || "inconclusive";
+            const reasoning = args.reasoning || "No reasoning provided";
+            const criteria = args.criteria || {};
+            const criteriaValues = Object.values(criteria);
+            const passedCriteria = cfg.criteria.filter((_, i) => criteriaValues[i] === "true");
+            const failedCriteria = cfg.criteria.filter((_, i) => criteriaValues[i] !== "true");
+
+            return {
+              success: verdict === "success",
+              messages: input.messages,
+              reasoning,
+              passedCriteria,
+              failedCriteria,
+            } satisfies ScenarioResult;
+
+          }
+
+          case "continue_test":
+            return [];
+
+          default:
+            return {
+              success: false,
+              messages: input.messages,
+              reasoning: `JudgeAgent: Unknown tool call: ${toolCall.toolName}`,
+              passedCriteria: [],
+              failedCriteria: cfg.criteria,
+            } satisfies ScenarioResult;
         }
       }
-
-      if (!args) {
-        try {
-          args = JSON.parse(completion.text);
-        } catch {
-          return {
-            success: false,
-            messages: input.messages,
-            reasoning: "JudgeAgent: Failed to parse LLM output as JSON or tool call",
-            passedCriteria: [],
-            failedCriteria: cfg.criteria,
-          } satisfies ScenarioResult;
-        }
-      }
-      if (!args) {
-        return {
-          success: false,
-          messages: input.messages,
-          reasoning: "JudgeAgent: LLM output was undefined after parsing",
-          passedCriteria: [],
-          failedCriteria: cfg.criteria,
-        } satisfies ScenarioResult;
-      }
-
-      const verdict = args.verdict || "inconclusive";
-      const reasoning = args.reasoning || "No reasoning provided";
-      const criteria = args.criteria || {};
-      const criteriaValues = Object.values(criteria);
-      const passedCriteria = cfg.criteria.filter((_, i) => criteriaValues[i] === true);
-      const failedCriteria = cfg.criteria.filter((_, i) => criteriaValues[i] === false);
 
       return {
-        success: verdict === "success",
+        success: false,
         messages: input.messages,
-        reasoning,
-        passedCriteria,
-        failedCriteria,
+        reasoning: `JudgeAgent: No tool call found in LLM output`,
+        passedCriteria: [],
+        failedCriteria: cfg.criteria,
       } satisfies ScenarioResult;
     },
   } satisfies JudgeAgentAdapter;

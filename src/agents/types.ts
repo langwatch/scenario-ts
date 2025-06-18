@@ -11,7 +11,7 @@ export interface TestingAgentConfig extends TestingAgentInferenceConfig {
 }
 
 export interface FinishTestArgs {
-  criteria: Record<string, boolean | "inconclusive">;
+  criteria: Record<string, "true" | "false" | "inconclusive">;
   reasoning: string;
   verdict: "success" | "failure" | "inconclusive";
 }
