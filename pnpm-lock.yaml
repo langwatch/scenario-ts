@@ -20,15 +20,15 @@ dependencies:
   csv-stringify:
     specifier: 6.5.2
     version: 6.5.2
-  dotenv:
-    specifier: 16.5.0
-    version: 16.5.0
   rxjs:
     specifier: 7.8.2
     version: 7.8.2
   stringify:
     specifier: 5.2.0
     version: 5.2.0
+  xksuid:
+    specifier: 0.0.4
+    version: 0.0.4
   zod:
     specifier: 3.24.4
     version: 3.24.4
@@ -46,6 +46,12 @@ devDependencies:
   '@typescript-eslint/parser':
     specifier: 8.32.0
     version: 8.32.0(eslint@9.26.0)(typescript@5.8.3)
+  '@typescript/native-preview':
+    specifier: 7.0.0-dev.20250617.1
+    version: 7.0.0-dev.20250617.1
+  dotenv:
+    specifier: 16.5.0
+    version: 16.5.0
   eslint:
     specifier: 9.26.0
     version: 9.26.0
@@ -1556,6 +1562,83 @@ packages:
       eslint-visitor-keys: 4.2.0
     dev: true
 
+  /@typescript/native-preview-darwin-arm64@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-GfymQ0cnEWOoae9Yb/20VE9Mqd4gowOPRzfxJtCbmYc8Yr2XAEavKnB8eHgtE5LYxML2796GADmIRhSS2qkmeA==}
+    engines: {node: '>=20.6.0'}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@typescript/native-preview-darwin-x64@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-ZIDJvjYeB2+uHsaQCGwpFbbMdLiJQMWIdTV2ba4cFKDMEQrrj2idPL0NH618joChE8enQ1E6YBMFtJcunzaO5A==}
+    engines: {node: '>=20.6.0'}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@typescript/native-preview-linux-arm64@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-/OGztX0ZTvOq1xjE0m4bKC0+0ADFopE1+wG5P2x0eifgYJqWS8Z3hZGzCIZ9EntEw5ehaaepSs2x+rFYw/mozg==}
+    engines: {node: '>=20.6.0'}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@typescript/native-preview-linux-arm@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-BImtvCIl8QrJaMhAvu4cW/aguShR29ypSPqFBMzGHGttdA0A9Opqwv4KB4JP9Pa3FPIrsvQ3EnKIzXYsxR1rXQ==}
+    engines: {node: '>=20.6.0'}
+    cpu: [arm]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@typescript/native-preview-linux-x64@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-YgJQ86WmTiTcm0bfV3cJr06lj4AXjnRSQ7wPn4Akie1ZnBwJ/MuBkSshcikeizEcwSNDq1wfcC1ajNTlwA6zlw==}
+    engines: {node: '>=20.6.0'}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@typescript/native-preview-win32-arm64@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-VGJL5ovkI2G4XCWeiAbQWIj2a20HIeZ5aXqxdqp6toiJ71K/w1iWa1UUFmS7Ahszr3IGUWMp54OKD8pH77+dow==}
+    engines: {node: '>=20.6.0'}
+    cpu: [arm64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@typescript/native-preview-win32-x64@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-w11yreVQnIP+QLF84OJUkHq7xdk5x3N6BWKnawcqYkSXLLkWBCJtzxUKr4+rT2cnITOGqWX7IVKBkWY0pJzBWw==}
+    engines: {node: '>=20.6.0'}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@typescript/native-preview@7.0.0-dev.20250617.1:
+    resolution: {integrity: sha512-ns9t0bz3JMuUnzeRbFFjPkVPJozl0gkEzPk6RTAALC/oAyCD22ZWWNT2f/4BnfaPCSv/VmS+DE+ehsBUhlLyvw==}
+    engines: {node: '>=20.6.0'}
+    hasBin: true
+    optionalDependencies:
+      '@typescript/native-preview-darwin-arm64': 7.0.0-dev.20250617.1
+      '@typescript/native-preview-darwin-x64': 7.0.0-dev.20250617.1
+      '@typescript/native-preview-linux-arm': 7.0.0-dev.20250617.1
+      '@typescript/native-preview-linux-arm64': 7.0.0-dev.20250617.1
+      '@typescript/native-preview-linux-x64': 7.0.0-dev.20250617.1
+      '@typescript/native-preview-win32-arm64': 7.0.0-dev.20250617.1
+      '@typescript/native-preview-win32-x64': 7.0.0-dev.20250617.1
+    dev: true
+
   /@unrs/resolver-binding-darwin-arm64@1.7.2:
     resolution: {integrity: sha512-vxtBno4xvowwNmO/ASL0Y45TpHqmNkAaDtz4Jqb+clmcVSSl8XCG/PNFFkGsXXXS6AMjP+ja/TtNCFFa1QwLRg==}
     cpu: [arm64]
@@ -2476,7 +2559,7 @@ packages:
   /dotenv@16.5.0:
     resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
     engines: {node: '>=12'}
-    dev: false
+    dev: true
 
   /dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -6029,6 +6112,10 @@ packages:
       imurmurhash: 0.1.4
       signal-exit: 3.0.7
     dev: true
+
+  /xksuid@0.0.4:
+    resolution: {integrity: sha512-uVWuWtTLV0c5glVnRUFVtAT0At/a438v4KCqhmKpkGiU1JXMzmrigEtKzNaQ3D4yHgDbEFl7C5EG688b2FARqA==}
+    dev: false
 
   /xml-char-classes@1.0.0:
     resolution: {integrity: sha512-dTaaRwm4ccF8UF15/PLT3pNNlZP04qko/FUcr0QBppYLk8+J7xA9gg2vI2X4Kr1PcJAVxwI9NdADex29FX2QVQ==}
