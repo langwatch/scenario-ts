@@ -4,10 +4,12 @@ import {
   CoreMessage,
 } from "ai";
 import { allAgentRoles, AgentRole, ScenarioConfig, ScenarioResult } from "../domain";
-import { ScenarioExecution } from "../scenario-execution";
+import { ScenarioEventBus } from "../events/event-bus";
+import { ScenarioExecution } from "../execution";
 import { proceed } from "../script";
 import { generateThreadId } from "../utils/ids";
 
+const eventBus = new ScenarioEventBus();
 
 export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   if (!cfg.name) {
@@ -22,7 +24,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   if (cfg.agents.length === 0) {
     throw new Error("At least one agent is required");
   }
-  if (!cfg.agents.find(agent => agent.role === AgentRole.AGENT)) {
+  if (!cfg.agents.find((agent) => agent.role === AgentRole.AGENT)) {
     throw new Error("At least one non-user/non-judge agent is required");
   }
 
@@ -37,10 +39,10 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   }
 
   const steps = cfg.script || [proceed()];
-  const execution = new ScenarioExecution(
-    cfg,
-    steps,
-  );
+  const execution = new ScenarioExecution(cfg, steps);
+
+  eventBus.listen();
+  eventBus.subscribeTo(execution.events$);
 
   const result = await execution.execute();
   if (cfg.verbose && !result.success) {
@@ -52,6 +54,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
     console.log(result.messages.map(formatMessage).join("\n"));
   }
 
+  await eventBus.drain();
   return result;
 }
 
