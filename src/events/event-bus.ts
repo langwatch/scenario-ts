@@ -1,4 +1,4 @@
-import { concatMap, EMPTY, catchError, Subject, Observable } from "rxjs";
+import { concatMap, EMPTY, catchError, Subject, Observable, Subscription } from "rxjs";
 import { EventReporter } from "./event-reporter";
 import { ScenarioEvent, ScenarioEventType } from "./schema";
 import { Logger } from "../utils/logger";
@@ -65,7 +65,7 @@ export class EventBus {
    * Stops accepting new events and drains the processing queue.
    */
   async drain(): Promise<void> {
-    this.events$.complete();
+    this.events$.unsubscribe();
 
     if (this.processingPromise) {
       await this.processingPromise;
@@ -76,7 +76,7 @@ export class EventBus {
    * Subscribes to an event stream.
    * @param source$ - The event stream to subscribe to.
    */
-  subscribeTo(source$: Observable<ScenarioEvent>) {
-    source$.subscribe(this.events$);
+  subscribeTo(source$: Observable<ScenarioEvent>): Subscription {
+    return source$.subscribe(this.events$);
   }
 }

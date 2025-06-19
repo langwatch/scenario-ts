@@ -3,6 +3,7 @@ import {
   ToolContent,
   CoreMessage,
 } from "ai";
+import { Subscription } from "rxjs";
 import { loadScenarioProjectConfig } from "../config/load";
 import { allAgentRoles, AgentRole, ScenarioConfig, ScenarioResult } from "../domain";
 import { EventBus } from "../events/event-bus";
@@ -41,6 +42,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   const execution = new ScenarioExecution(cfg, steps);
 
   let eventBus: EventBus | null = null;
+  let subscription: Subscription | null = null;
 
   try {
     const projectConfig = await loadScenarioProjectConfig();
@@ -50,7 +52,8 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
       apiKey: projectConfig.langwatchApiKey,
     });
     eventBus.listen();
-    eventBus.subscribeTo(execution.events$);
+
+    subscription = eventBus.subscribeTo(execution.events$);
 
     const result = await execution.execute();
     if (cfg.verbose && !result.success) {
@@ -65,6 +68,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
     return result;
   } finally {
     await eventBus?.drain();
+    subscription?.unsubscribe();
   }
 }
 
