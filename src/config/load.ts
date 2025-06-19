@@ -3,7 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { ScenarioProjectConfig, scenarioProjectConfigSchema } from "../domain";
 
-export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig | null> {
+export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig> {
   const cwd = process.cwd();
   const configNames = [
     "scenario.config.js",
@@ -35,5 +35,5 @@ export async function loadScenarioProjectConfig(): Promise<ScenarioProjectConfig
     }
   }
 
-  return null;
+  return await scenarioProjectConfigSchema.parseAsync({});
 }
