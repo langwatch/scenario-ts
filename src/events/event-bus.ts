@@ -3,18 +3,18 @@ import { EventReporter } from "./event-reporter";
 import { ScenarioEvent, ScenarioEventType } from "./schema";
 import { Logger } from "../utils/logger";
 
-const logger = new Logger("ScenarioEventBus");
+const logger = new Logger("scenario.events.EventBus");
 
 /**
  * Manages scenario event publishing, subscription, and processing pipeline.
  */
-export class ScenarioEventBus {
+export class EventBus {
   private events$ = new Subject<ScenarioEvent>();
   private eventReporter: EventReporter;
   private processingPromise: Promise<void> | null = null;
 
-  constructor(eventReporter?: EventReporter) {
-    this.eventReporter = eventReporter ?? new EventReporter();
+  constructor(config: { endpoint: string; apiKey: string | undefined }) {
+    this.eventReporter = new EventReporter(config);
   }
 
   /**

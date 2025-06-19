@@ -8,14 +8,13 @@ import { Logger } from "../utils/logger";
  * with proper authentication and error handling.
  */
 export class EventReporter {
-  private readonly endpoint: string | undefined;
+  private readonly endpoint: string;
   private readonly apiKey: string;
-  private readonly logger: Logger;
+  private readonly logger = new Logger("scenario.events.EventReporter");
 
-  constructor(options?: { endpoint?: string; apiKey?: string }) {
-    this.endpoint = options?.endpoint ?? process.env.SCENARIO_EVENTS_ENDPOINT;
-    this.apiKey = options?.apiKey ?? process.env.LANGWATCH_API_KEY ?? "";
-    this.logger = Logger.create("EventReporter");
+  constructor(config: { endpoint: string; apiKey: string | undefined }) {
+    this.endpoint = config.endpoint;
+    this.apiKey = config.apiKey ?? "";
   }
 
   /**

@@ -3,13 +3,12 @@ import {
   ToolContent,
   CoreMessage,
 } from "ai";
+import { loadScenarioProjectConfig } from "../config/load";
 import { allAgentRoles, AgentRole, ScenarioConfig, ScenarioResult } from "../domain";
-import { ScenarioEventBus } from "../events/event-bus";
+import { EventBus } from "../events/event-bus";
 import { ScenarioExecution } from "../execution";
 import { proceed } from "../script";
 import { generateThreadId } from "../utils/ids";
-
-const eventBus = new ScenarioEventBus();
 
 export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   if (!cfg.name) {
@@ -41,6 +40,11 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   const steps = cfg.script || [proceed()];
   const execution = new ScenarioExecution(cfg, steps);
 
+  const projectConfig = await loadScenarioProjectConfig();
+  const eventBus = new EventBus({
+    endpoint: projectConfig.langwatchEndpoint,
+    apiKey: projectConfig.langwatchApiKey,
+  });
   eventBus.listen();
   eventBus.subscribeTo(execution.events$);
 
@@ -55,6 +59,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   }
 
   await eventBus.drain();
+
   return result;
 }
 
