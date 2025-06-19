@@ -40,27 +40,32 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   const steps = cfg.script || [proceed()];
   const execution = new ScenarioExecution(cfg, steps);
 
-  const projectConfig = await loadScenarioProjectConfig();
-  const eventBus = new EventBus({
-    endpoint: projectConfig.langwatchEndpoint,
-    apiKey: projectConfig.langwatchApiKey,
-  });
-  eventBus.listen();
-  eventBus.subscribeTo(execution.events$);
+  let eventBus: EventBus | null = null;
 
-  const result = await execution.execute();
-  if (cfg.verbose && !result.success) {
-    console.log(`Scenario failed: ${cfg.name}`);
-    console.log(`Reasoning: ${result.reasoning}`);
-    console.log('--------------------------------');
-    console.log(`Passed criteria: ${result.passedCriteria.join("\n- ")}`);
-    console.log(`Failed criteria: ${result.failedCriteria.join("\n- ")}`);
-    console.log(result.messages.map(formatMessage).join("\n"));
+  try {
+    const projectConfig = await loadScenarioProjectConfig();
+
+    eventBus = new EventBus({
+      endpoint: projectConfig.langwatchEndpoint,
+      apiKey: projectConfig.langwatchApiKey,
+    });
+    eventBus.listen();
+    eventBus.subscribeTo(execution.events$);
+
+    const result = await execution.execute();
+    if (cfg.verbose && !result.success) {
+      console.log(`Scenario failed: ${cfg.name}`);
+      console.log(`Reasoning: ${result.reasoning}`);
+      console.log('--------------------------------');
+      console.log(`Passed criteria: ${result.passedCriteria.join("\n- ")}`);
+      console.log(`Failed criteria: ${result.failedCriteria.join("\n- ")}`);
+      console.log(result.messages.map(formatMessage).join("\n"));
+    }
+
+    return result;
+  } finally {
+    await eventBus?.drain();
   }
-
-  await eventBus.drain();
-
-  return result;
 }
 
 function formatMessage(m: CoreMessage): string {
