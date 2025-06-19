@@ -3,11 +3,13 @@ import {
   ToolContent,
   CoreMessage,
 } from "ai";
+import { Subscription } from "rxjs";
+import { loadScenarioProjectConfig } from "../config/load";
 import { allAgentRoles, AgentRole, ScenarioConfig, ScenarioResult } from "../domain";
-import { ScenarioExecution } from "../scenario-execution";
+import { EventBus } from "../events/event-bus";
+import { ScenarioExecution } from "../execution";
 import { proceed } from "../script";
 import { generateThreadId } from "../utils/ids";
-
 
 export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   if (!cfg.name) {
@@ -22,7 +24,7 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   if (cfg.agents.length === 0) {
     throw new Error("At least one agent is required");
   }
-  if (!cfg.agents.find(agent => agent.role === AgentRole.AGENT)) {
+  if (!cfg.agents.find((agent) => agent.role === AgentRole.AGENT)) {
     throw new Error("At least one non-user/non-judge agent is required");
   }
 
@@ -37,22 +39,37 @@ export async function run(cfg: ScenarioConfig): Promise<ScenarioResult> {
   }
 
   const steps = cfg.script || [proceed()];
-  const execution = new ScenarioExecution(
-    cfg,
-    steps,
-  );
+  const execution = new ScenarioExecution(cfg, steps);
 
-  const result = await execution.execute();
-  if (cfg.verbose && !result.success) {
-    console.log(`Scenario failed: ${cfg.name}`);
-    console.log(`Reasoning: ${result.reasoning}`);
-    console.log('--------------------------------');
-    console.log(`Passed criteria: ${result.passedCriteria.join("\n- ")}`);
-    console.log(`Failed criteria: ${result.failedCriteria.join("\n- ")}`);
-    console.log(result.messages.map(formatMessage).join("\n"));
+  let eventBus: EventBus | null = null;
+  let subscription: Subscription | null = null;
+
+  try {
+    const projectConfig = await loadScenarioProjectConfig();
+
+    eventBus = new EventBus({
+      endpoint: projectConfig.langwatchEndpoint,
+      apiKey: projectConfig.langwatchApiKey,
+    });
+    eventBus.listen();
+
+    subscription = eventBus.subscribeTo(execution.events$);
+
+    const result = await execution.execute();
+    if (cfg.verbose && !result.success) {
+      console.log(`Scenario failed: ${cfg.name}`);
+      console.log(`Reasoning: ${result.reasoning}`);
+      console.log('--------------------------------');
+      console.log(`Passed criteria: ${result.passedCriteria.join("\n- ")}`);
+      console.log(`Failed criteria: ${result.failedCriteria.join("\n- ")}`);
+      console.log(result.messages.map(formatMessage).join("\n"));
+    }
+
+    return result;
+  } finally {
+    await eventBus?.drain();
+    subscription?.unsubscribe();
   }
-
-  return result;
 }
 
 function formatMessage(m: CoreMessage): string {

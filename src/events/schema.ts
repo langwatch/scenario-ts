@@ -1,6 +1,5 @@
 import { EventType, MessagesSnapshotEventSchema } from "@ag-ui/core";
 import { z } from "zod";
-import { safeParseXKsuid } from "./lib";
 
 // Scenario event type enum
 export enum ScenarioEventType {
@@ -25,55 +24,22 @@ const baseEventSchema = z.object({
   rawEvent: z.any().optional(),
 });
 
-// This is the scenario batch id schema
-const batchRunIdSchema = z.string().refine(
-  (val) => {
-    const [resource, id] = val.split("_");
-    return resource === "scenariobatch" && safeParseXKsuid(id);
-  },
-  {
-    message: "ID must be a valid ksuid, with the resource 'scenariobatch_'",
-  }
-);
-
-// This is the scenario run id schema
-const scenarioRunIdSchema = z.string().refine(
-  (val) => {
-    const [resource, id] = val.split("_");
-    return resource === "scenariorun" && safeParseXKsuid(id);
-  },
-  {
-    message: "ID must be a valid ksuid, with the resource 'scenariorun_'",
-  }
-);
-
-// This is the scenario id schema
-const scenarioIdSchema = z.string().refine(
-  (val) => {
-    const [resource, id] = val.split("_");
-    return resource === "scenario" && safeParseXKsuid(id);
-  },
-  {
-    message: "ID must be a valid ksuid, with the resource 'scenario_'",
-  }
-);
-
 // Base scenario event schema with common fields
 const baseScenarioEventSchema = baseEventSchema.extend({
-  batchRunId: batchRunIdSchema,
-  scenarioId: scenarioIdSchema,
-  scenarioRunId: scenarioRunIdSchema,
+  batchRunId: z.string(),
+  scenarioId: z.string(),
+  scenarioRunId: z.string(),
 });
 
 // Scenario Run Started Event
 // TODO: Consider metadata
 export const scenarioRunStartedSchema = baseScenarioEventSchema.extend({
   type: z.literal(ScenarioEventType.RUN_STARTED),
-  //   metadata: z.object({
-  //     name: z.string(),
-  //     description: z.string().optional(),
-  //     config: z.record(z.unknown()).optional(),
-  //   }),
+  metadata: z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    // config: z.record(z.unknown()).optional(),
+  }),
 });
 
 // Scenario Run Finished Event

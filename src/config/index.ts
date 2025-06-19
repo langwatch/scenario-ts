@@ -18,10 +18,7 @@ async function loadProjectConfig() {
 
   configLoadPromise = (async () => {
     try {
-      const loadedConfig = await loadScenarioProjectConfig();
-      if (loadedConfig) {
-        config = loadedConfig;
-      }
+      config = await loadScenarioProjectConfig();
 
       logger.info("loaded scenario project config", { config });
     } catch (error) {

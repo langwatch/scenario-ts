@@ -1,8 +1,9 @@
 import { CoreMessage, CoreToolMessage } from "ai";
 import { ScenarioResult, AgentRole, AgentAdapter, ScenarioExecutionStateLike } from "../domain";
+import { generateMessageId } from "../utils/ids";
 
 export class ScenarioExecutionState implements ScenarioExecutionStateLike {
-  private _history: CoreMessage[] = [];
+  private _history: (CoreMessage & { id: string })[] = [];
   private _turn: number = 0;
   private _partialResult: Omit<ScenarioResult, "messages"> | null = null;
   private _threadId: string = "";
@@ -29,7 +30,7 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
 
   appendMessage(role: CoreMessage["role"], content: string): void {
     const message: CoreMessage = { role, content } as CoreMessage;
-    this._history.push(message);
+    this._history.push({ ...message, id: generateMessageId() });
   }
 
   appendUserMessage(content: string): void {
@@ -41,7 +42,7 @@ export class ScenarioExecutionState implements ScenarioExecutionStateLike {
   }
 
   addMessage(message: CoreMessage, fromAgentIdx?: number): void {
-    this._history.push(message);
+    this._history.push({ ...message, id: generateMessageId() });
 
     for (let idx = 0; idx < this._agents.length; idx++) {
       if (idx === fromAgentIdx) continue;

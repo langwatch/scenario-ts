@@ -1,18 +1,20 @@
-import { concatMap, EMPTY, catchError, Subject } from "rxjs";
-import { EventReporter } from "../event-reporter";
+import { concatMap, EMPTY, catchError, Subject, Observable, Subscription } from "rxjs";
+import { EventReporter } from "./event-reporter";
+import { ScenarioEvent, ScenarioEventType } from "./schema";
+import { Logger } from "../utils/logger";
 
-import { ScenarioEvent, ScenarioEventType } from "../schemas";
+const logger = new Logger("scenario.events.EventBus");
 
 /**
  * Manages scenario event publishing, subscription, and processing pipeline.
  */
-export class ScenarioEventBus {
+export class EventBus {
   private events$ = new Subject<ScenarioEvent>();
   private eventReporter: EventReporter;
   private processingPromise: Promise<void> | null = null;
 
-  constructor(eventReporter?: EventReporter) {
-    this.eventReporter = eventReporter ?? new EventReporter();
+  constructor(config: { endpoint: string; apiKey: string | undefined }) {
+    this.eventReporter = new EventReporter(config);
   }
 
   /**
@@ -39,7 +41,7 @@ export class ScenarioEventBus {
             return event;
           }),
           catchError((error) => {
-            console.error("Error in event stream:", error);
+            logger.error("Error in event stream:", error);
             return EMPTY;
           })
         )
@@ -50,7 +52,7 @@ export class ScenarioEventBus {
             }
           },
           error: (error) => {
-            console.error("Error in event stream:", error);
+            logger.error("Error in event stream:", error);
             reject(error);
           },
         });
@@ -63,10 +65,18 @@ export class ScenarioEventBus {
    * Stops accepting new events and drains the processing queue.
    */
   async drain(): Promise<void> {
-    this.events$.complete();
+    this.events$.unsubscribe();
 
     if (this.processingPromise) {
       await this.processingPromise;
     }
+  }
+
+  /**
+   * Subscribes to an event stream.
+   * @param source$ - The event stream to subscribe to.
+   */
+  subscribeTo(source$: Observable<ScenarioEvent>): Subscription {
+    return source$.subscribe(this.events$);
   }
 }
