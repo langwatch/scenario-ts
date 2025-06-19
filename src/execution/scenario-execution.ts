@@ -1,4 +1,5 @@
 import { CoreMessage } from "ai";
+import { Observable, Subject } from "rxjs";
 import { ScenarioExecutionState } from "./scenario-execution-state";
 import {
   type ScenarioResult,
@@ -12,7 +13,8 @@ import {
   JudgeAgentAdapter,
   ScenarioExecutionStateLike
 } from "../domain";
-import { generateThreadId } from "../utils/ids";
+import { ScenarioEvent, ScenarioEventType, ScenarioMessageSnapshotEvent, ScenarioRunFinishedEvent, ScenarioRunStartedEvent, ScenarioRunStatus } from "../events/schema";
+import { generateScenarioId, generateScenarioRunId, generateThreadId, getBatchRunId } from "../utils/ids";
 
 function convertAgentReturnTypesToMessages(response: AgentReturnTypes, role: "user" | "assistant"): CoreMessage[] {
   if (typeof response === "string")
@@ -29,11 +31,15 @@ function convertAgentReturnTypesToMessages(response: AgentReturnTypes, role: "us
 
 export class ScenarioExecution implements ScenarioExecutionLike {
   private state: ScenarioExecutionStateLike = new ScenarioExecutionState();
+  private eventSubject = new Subject<ScenarioEvent>();
+  public readonly events$: Observable<ScenarioEvent> =
+    this.eventSubject.asObservable();
 
   constructor(
     public readonly config: ScenarioConfig,
     public readonly steps: ScriptStep[],
   ) {
+    this.config.id = this.config.id ?? generateScenarioId();
     this.reset();
   }
 
@@ -45,32 +51,46 @@ export class ScenarioExecution implements ScenarioExecutionLike {
     return this.state.threadId;
   }
 
-  private reset(): void {
-    this.state = new ScenarioExecutionState();
-    this.state.setThreadId(this.config.threadId || generateThreadId());
-    this.state.setAgents(this.config.agents);
-    this.state.newTurn();
-    this.state.turn = 0;
-  }
-
   async execute(): Promise<ScenarioResult> {
     this.reset();
 
-    // Execute script steps - pass the execution context (this), not just state
-    for (const scriptStep of this.steps) {
-      const result = await scriptStep(this.state, this);
-      if (result && typeof result === "object" && "success" in result) {
-        return result as ScenarioResult;
-      }
-    }
+    const scenarioRunId = generateScenarioRunId();
+    this.emitRunStarted({ scenarioRunId });
 
-    // If no conclusion reached, return max turns error
-    return this.reachedMaxTurns([
-      "Reached end of script without conclusion, add one of the following to the end of the script:",
-      "- `Scenario.proceed()` to let the simulation continue to play out",
-      "- `Scenario.judge()` to force criteria judgement",
-      "- `Scenario.succeed()` or `Scenario.fail()` to end the test with an explicit result",
-    ].join("\n"));
+    try {
+      // Execute script steps - pass the execution context (this), not just state
+      for (const scriptStep of this.steps) {
+        const result = await scriptStep(this.state, this);
+
+        this.emitMessageSnapshot({ scenarioRunId });
+
+        if (result && typeof result === "object" && "success" in result) {
+          this.emitRunFinished({
+            scenarioRunId,
+            status: result.success ? ScenarioRunStatus.SUCCESS : ScenarioRunStatus.FAILED,
+          });
+
+          return result as ScenarioResult;
+        }
+      }
+
+      this.emitRunFinished({ scenarioRunId, status: ScenarioRunStatus.FAILED });
+
+      // If no conclusion reached, return max turns error
+      return this.reachedMaxTurns([
+        "Reached end of script without conclusion, add one of the following to the end of the script:",
+        "- `Scenario.proceed()` to let the simulation continue to play out",
+        "- `Scenario.judge()` to force criteria judgement",
+        "- `Scenario.succeed()` or `Scenario.fail()` to end the test with an explicit result",
+      ].join("\n"));
+    } catch (error) {
+      this.emitRunFinished({
+        scenarioRunId,
+        status: ScenarioRunStatus.ERROR,
+      });
+
+      throw error;
+    }
   }
 
   async step(): Promise<CoreMessage[] | ScenarioResult> {
@@ -326,5 +346,84 @@ export class ScenarioExecution implements ScenarioExecutionLike {
       passedCriteria: [],
       failedCriteria: [],
     };
+  }
+
+  private reset(): void {
+    this.state = new ScenarioExecutionState();
+    this.state.setThreadId(this.config.threadId || generateThreadId());
+    this.state.setAgents(this.config.agents);
+    this.state.newTurn();
+    this.state.turn = 0;
+  }
+
+  // =====================================================
+  // Event Emission Methods
+  // =====================================================
+  // These methods handle the creation and emission of
+  // scenario events for external consumption and monitoring
+  // =====================================================
+
+  /**
+   * Emits an event to the event stream for external consumption.
+   */
+  private emitEvent(event: ScenarioEvent): void {
+    this.eventSubject.next(event);
+  }
+
+  /**
+   * Creates base event properties shared across all scenario events.
+   */
+  private makeBaseEvent({ scenarioRunId }: { scenarioRunId: string }) {
+    return {
+      batchRunId: getBatchRunId(),
+      scenarioId: this.config.id!,
+      scenarioRunId,
+      timestamp: Date.now(),
+      rawEvent: undefined,
+    };
+  }
+
+  /**
+   * Emits a run started event to indicate scenario execution has begun.
+   */
+  private emitRunStarted({ scenarioRunId }: { scenarioRunId: string }) {
+    this.emitEvent({
+      ...this.makeBaseEvent({ scenarioRunId }),
+      type: ScenarioEventType.RUN_STARTED,
+      metadata: {
+        name: this.config.name,
+        description: this.config.description,
+      },
+    } as ScenarioRunStartedEvent);
+  }
+
+  /**
+   * Emits a message snapshot event containing current conversation history.
+   */
+  private emitMessageSnapshot({ scenarioRunId }: { scenarioRunId: string }) {
+    this.emitEvent({
+      ...this.makeBaseEvent({ scenarioRunId }),
+      type: ScenarioEventType.MESSAGE_SNAPSHOT,
+      messages: this.state.history,
+      // Add any other required fields from MessagesSnapshotEventSchema
+    } as ScenarioMessageSnapshotEvent);
+  }
+
+  /**
+   * Emits a run finished event with the final execution status.
+   */
+  private emitRunFinished({
+    scenarioRunId,
+    status,
+  }: {
+    scenarioRunId: string;
+    status: ScenarioRunStatus;
+  }) {
+    this.emitEvent({
+      ...this.makeBaseEvent({ scenarioRunId }),
+      type: ScenarioEventType.RUN_FINISHED,
+      status,
+      // Add error/metrics fields if needed
+    } as ScenarioRunFinishedEvent);
   }
 }
